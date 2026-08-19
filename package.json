@@ -1,0 +1,13 @@
+{
+  "name": "findam",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Findam - property, land and household marketplace monorepo (Expo mobile app + NestJS API). Each app under apps/ manages its own dependencies independently.",
+  "scripts": {
+    "api:dev": "npm --prefix apps/api run start:dev",
+    "api:build": "npm --prefix apps/api run build",
+    "mobile:start": "npm --prefix apps/mobile run start",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  }
+}

@@ -1,0 +1,391 @@
+// Findam - Prisma schema
+// PostgreSQL + PostGIS. Run migrations with `npx prisma migrate dev`.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+}
+
+enum ListingType {
+  PROPERTY
+  LAND
+  HOUSEHOLD
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  RENTED
+  SOLD
+  EXPIRED
+  REJECTED
+  ARCHIVED
+}
+
+enum PropertyType {
+  APARTMENT
+  FLAT
+  SELF_CONTAINED
+  SHORT_LET
+  SERVICED_APARTMENT
+  NEW_PROJECT
+  HOUSE
+  DUPLEX
+  BUNGALOW
+  DETACHED_DUPLEX
+  SEMI_DETACHED_DUPLEX
+  TERRACE
+  SHOP
+  OFFICE
+  COMMERCIAL
+  OTHER
+}
+
+enum PropertyOfferType {
+  RENT
+  SHORT_LET
+  SALE
+}
+
+enum RentPeriod {
+  MONTHLY
+  QUARTERLY
+  BIANNUALLY
+  ANNUALLY
+}
+
+enum AgencyFeeType {
+  FLAT
+  PERCENTAGE
+}
+
+enum LandTenure {
+  SALE
+  LEASE
+}
+
+enum MeasurementUnit {
+  SQM
+  SQFT
+  PLOT
+  ACRE
+  HECTARE
+}
+
+enum HouseholdCategory {
+  FURNITURE
+  TELEVISION
+  REFRIGERATOR
+  AIR_CONDITIONER
+  COOKER
+  GENERATOR
+  ELECTRONICS
+  KITCHEN_EQUIPMENT
+  OFFICE_FURNITURE
+  OTHER
+}
+
+enum HouseholdCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  FOR_PARTS
+}
+
+// ---------------------------------------------------------------------------
+// Users & Agents
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  phone        String? @unique
+  passwordHash String?
+  googleId     String? @unique
+  firstName    String
+  lastName     String
+  avatarUrl    String?
+  role         Role    @default(USER)
+  isActive     Boolean @default(true)
+
+  agentProfile        AgentProfile?
+  listings            Listing[]
+  favorites           Favorite[]
+  ratingsGiven        AgentRating[]        @relation("RatingsAuthored")
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  createdAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AgentProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName    String?
+  whatsapp      String?
+  bio           String?
+  countryId     String?
+  country       Country? @relation(fields: [countryId], references: [id])
+  stateId       String?
+  state         State?   @relation(fields: [stateId], references: [id])
+  areasCovered  String[] @default([])
+  isVerified    Boolean  @default(false)
+  averageRating Float    @default(0)
+  reviewCount   Int      @default(0)
+
+  ratingsReceived AgentRating[] @relation("RatingsForAgent")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isVerified])
+}
+
+model AgentRating {
+  id                String       @id @default(uuid())
+  agentId           String
+  agent             AgentProfile @relation("RatingsForAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  authorId          String
+  author            User         @relation("RatingsAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  overallRating     Int
+  communication     Int
+  listingAccuracy   Int
+  professionalism   Int
+  responsiveness    Int
+  comment           String?
+  isVerifiedContact Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Prevents a user from repeatedly re-rating the same agent.
+  @@unique([agentId, authorId])
+  @@index([agentId])
+}
+
+// ---------------------------------------------------------------------------
+// Location hierarchy
+// ---------------------------------------------------------------------------
+
+model Country {
+  id   String @id @default(uuid())
+  name String @unique
+  code String @unique
+
+  states   State[]
+  listings Listing[]
+  agents   AgentProfile[]
+}
+
+model State {
+  id        String  @id @default(uuid())
+  name      String
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  cities   City[]
+  listings Listing[]
+  agents   AgentProfile[]
+
+  @@unique([countryId, name])
+}
+
+model City {
+  id      String @id @default(uuid())
+  name    String
+  stateId String
+  state   State  @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  areas    Area[]
+  listings Listing[]
+
+  @@unique([stateId, name])
+}
+
+model Area {
+  id     String @id @default(uuid())
+  name   String
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  listings Listing[]
+
+  @@unique([cityId, name])
+}
+
+// ---------------------------------------------------------------------------
+// Listings (common parent) + specialized detail tables
+// ---------------------------------------------------------------------------
+
+model Listing {
+  id          String        @id @default(uuid())
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id])
+  type        ListingType
+  title       String
+  description String
+  price       Decimal       @db.Decimal(14, 2)
+  status      ListingStatus @default(DRAFT)
+
+  countryId String
+  country   Country @relation(fields: [countryId], references: [id])
+  stateId   String
+  state     State   @relation(fields: [stateId], references: [id])
+  cityId    String
+  city      City    @relation(fields: [cityId], references: [id])
+  areaId    String?
+  area      Area?   @relation(fields: [areaId], references: [id])
+
+  latitude  Float?
+  longitude Float?
+  // Maintained alongside latitude/longitude for PostGIS radius queries (see LocationsService).
+  location  Unsupported("geography(Point, 4326)")?
+
+  propertyDetails  PropertyDetails?
+  landDetails      LandDetails?
+  householdDetails HouseholdItemDetails?
+  images           ListingImage[]
+  favorites        Favorite[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([type])
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([countryId])
+  @@index([stateId])
+  @@index([cityId])
+  @@index([areaId])
+  @@index([price])
+}
+
+model ListingImage {
+  id        String  @id @default(uuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String?
+  position  Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model PropertyDetails {
+  id        String  @id @default(uuid())
+  listingId String  @unique
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  propertyType PropertyType
+  offerType    PropertyOfferType @default(RENT)
+  rentPeriod   RentPeriod
+  bedrooms     Int?
+  bathrooms    Int?
+  toilets      Int?
+  parking      Int?
+  isFurnished  Boolean           @default(false)
+  amenities    String[]          @default([])
+  isAvailable  Boolean           @default(true)
+
+  // Move-in charges are stored individually; totals are derived, never stored.
+  securityDeposit Decimal       @default(0) @db.Decimal(14, 2)
+  agencyFeeType   AgencyFeeType @default(FLAT)
+  agencyFee       Decimal       @default(0) @db.Decimal(14, 2)
+  legalFee        Decimal       @default(0) @db.Decimal(14, 2)
+  cautionFee      Decimal       @default(0) @db.Decimal(14, 2)
+  serviceCharge   Decimal       @default(0) @db.Decimal(14, 2)
+  otherCharges    Decimal       @default(0) @db.Decimal(14, 2)
+
+  @@index([propertyType])
+  @@index([offerType])
+  @@index([bedrooms])
+}
+
+model LandDetails {
+  id        String  @id @default(uuid())
+  listingId String  @unique
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  tenure             LandTenure
+  numberOfPlots      Int?
+  landSize           Decimal         @db.Decimal(14, 2)
+  measurementUnit    MeasurementUnit
+  documentsAvailable String[]        @default([])
+
+  @@index([tenure])
+}
+
+model HouseholdItemDetails {
+  id        String  @id @default(uuid())
+  listingId String  @unique
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  category  HouseholdCategory
+  condition HouseholdCondition
+
+  @@index([category])
+}
+
+model Favorite {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
