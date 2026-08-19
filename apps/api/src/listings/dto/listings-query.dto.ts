@@ -72,11 +72,15 @@ export class ListingsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   latitude?: number;
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   longitude?: number;
   @ApiPropertyOptional({
     description: 'Radius in kilometres for nearby searches',
@@ -84,7 +88,7 @@ export class ListingsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(1)
+  @Min(0.5)
   @Max(100)
   radiusKm?: number;
   @ApiPropertyOptional({ default: 1 })

@@ -283,10 +283,13 @@ model Listing {
   areaId    String?
   area      Area?   @relation(fields: [areaId], references: [id])
 
-  latitude  Float?
-  longitude Float?
+  latitude         Float?
+  longitude        Float?
+  formattedAddress String?
+  locationProvider String?
+  locationPlaceId  String?
   // Maintained alongside latitude/longitude for PostGIS radius queries (see LocationsService).
-  location  Unsupported("geography(Point, 4326)")?
+  location         Unsupported("geography(Point, 4326)")?
 
   propertyDetails  PropertyDetails?
   landDetails      LandDetails?
@@ -307,6 +310,7 @@ model Listing {
   @@index([cityId])
   @@index([areaId])
   @@index([price])
+  @@index([locationProvider, locationPlaceId])
 }
 
 model ListingImage {

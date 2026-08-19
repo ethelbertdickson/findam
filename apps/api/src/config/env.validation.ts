@@ -57,6 +57,10 @@ class EnvironmentVariables {
   @IsString()
   CLOUDINARY_API_SECRET?: string;
 
+  @IsOptional()
+  @IsString()
+  GEOAPIFY_API_KEY?: string;
+
   @IsInt()
   THROTTLE_TTL: number = 60;
 

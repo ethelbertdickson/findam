@@ -165,10 +165,11 @@ export class ListingsService {
         cityId: dto.cityId,
         areaId: dto.areaId,
       };
+    const countryCode = (dto.countryCode || 'NG').trim().toUpperCase();
     const country = await this.prisma.country.upsert({
-      where: { code: 'NG' },
+      where: { code: countryCode },
       update: {},
-      create: { name: dto.countryName || 'Nigeria', code: 'NG' },
+      create: { name: dto.countryName || countryCode, code: countryCode },
     });
     const state = await this.prisma.state.upsert({
       where: {
@@ -235,6 +236,9 @@ export class ListingsService {
         ...locations,
         latitude: dto.latitude,
         longitude: dto.longitude,
+        formattedAddress: dto.formattedAddress,
+        locationProvider: dto.locationProvider,
+        locationPlaceId: dto.locationPlaceId,
         images: dto.images
           ? { create: dto.images.map((url, position) => ({ url, position })) }
           : undefined,
@@ -276,6 +280,10 @@ export class ListingsService {
       dto.stateName,
       dto.cityName,
       dto.areaName,
+      dto.countryCode,
+      dto.formattedAddress,
+      dto.locationProvider,
+      dto.locationPlaceId,
     ].some((value) => value !== undefined);
     const locations = hasLocationUpdate
       ? await this.locationIds(dto as CreateListingDto)
@@ -289,6 +297,15 @@ export class ListingsService {
         ...locations,
         ...(dto.latitude !== undefined && { latitude: dto.latitude }),
         ...(dto.longitude !== undefined && { longitude: dto.longitude }),
+        ...(dto.formattedAddress !== undefined && {
+          formattedAddress: dto.formattedAddress,
+        }),
+        ...(dto.locationProvider !== undefined && {
+          locationProvider: dto.locationProvider,
+        }),
+        ...(dto.locationPlaceId !== undefined && {
+          locationPlaceId: dto.locationPlaceId,
+        }),
         ...(dto.images !== undefined && {
           images: {
             deleteMany: {},

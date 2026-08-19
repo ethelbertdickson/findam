@@ -23,6 +23,9 @@ export default () => ({
       .map((clientId) => clientId.trim())
       .filter(Boolean),
   },
+  geoapify: {
+    apiKey: process.env.GEOAPIFY_API_KEY,
+  },
   throttle: {
     ttl: parseInt(process.env.THROTTLE_TTL ?? '60', 10),
     limit: parseInt(process.env.THROTTLE_LIMIT ?? '100', 10),

@@ -158,15 +158,23 @@ export class CreateListingDto {
   @ApiPropertyOptional() @IsOptional() @IsString() stateName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() cityName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() areaName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() countryCode?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() formattedAddress?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() locationProvider?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() locationPlaceId?: string;
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   latitude?: number;
   @ApiPropertyOptional()
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   longitude?: number;
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

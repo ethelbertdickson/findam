@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Find Am",
+    "slug": "findam",
+    "scheme": "findam",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/findam-icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.findam.app"
+    },
+    "android": {
+      "package": "com.findam.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/findam-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/findam-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      "expo-secure-store",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/findam-splash.png",
+          "backgroundColor": "#F4F7FC",
+          "resizeMode": "cover",
+          "imageWidth": 430,
+          "dark": {
+            "image": "./assets/findam-splash.png",
+            "backgroundColor": "#F4F7FC"
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Find Am to use your location only when you choose Use my current location."
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "337e03d9-91fb-4ef2-8225-9648da688a28"
+      }
+    }
+  }
+}
