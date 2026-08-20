@@ -19,7 +19,11 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://findam-eee5.onrender.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "157598011834-ln2rf1qvqbkddpta7s20g6bi6eqjnimg.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {
