@@ -39,6 +39,7 @@ export class ListingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: ListingsQueryDto) {
+    const searchTerms = query.q?.trim().split(/\s+/).filter(Boolean) ?? [];
     const where: Prisma.ListingWhereInput = {
       status: ListingStatus.ACTIVE,
       deletedAt: null,
@@ -56,15 +57,21 @@ export class ListingsService {
             },
           }
         : {}),
-      ...(query.q && {
-        OR: [
-          { title: { contains: query.q, mode: 'insensitive' } },
-          { description: { contains: query.q, mode: 'insensitive' } },
-          { state: { name: { contains: query.q, mode: 'insensitive' } } },
-          { city: { name: { contains: query.q, mode: 'insensitive' } } },
-          { area: { name: { contains: query.q, mode: 'insensitive' } } },
-        ],
-      }),
+      ...(searchTerms.length
+        ? {
+            AND: searchTerms.map((term) => ({
+              OR: [
+                { title: { contains: term, mode: 'insensitive' as const } },
+                { description: { contains: term, mode: 'insensitive' as const } },
+                { formattedAddress: { contains: term, mode: 'insensitive' as const } },
+                { country: { name: { contains: term, mode: 'insensitive' as const } } },
+                { state: { name: { contains: term, mode: 'insensitive' as const } } },
+                { city: { name: { contains: term, mode: 'insensitive' as const } } },
+                { area: { name: { contains: term, mode: 'insensitive' as const } } },
+              ],
+            })),
+          }
+        : {}),
       ...(query.propertyType || query.offerType || query.bedrooms !== undefined
         ? {
             propertyDetails: {

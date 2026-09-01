@@ -196,6 +196,7 @@ export default function CreateListingScreen() {
     useState<HouseholdCategory>("OTHER");
   const [householdCondition, setHouseholdCondition] =
     useState<HouseholdCondition>("GOOD");
+  const [customLocationText, setCustomLocationText] = useState("");
 
   useEffect(() => {
     navigation.setOptions({
@@ -328,7 +329,7 @@ export default function CreateListingScreen() {
         areaName: selectedLocation?.areaName,
         latitude: selectedLocation?.latitude,
         longitude: selectedLocation?.longitude,
-        formattedAddress: selectedLocation?.formattedAddress,
+        formattedAddress: selectedLocation?.formattedAddress || customLocationText.trim() || undefined,
         locationProvider: selectedLocation?.provider,
         locationPlaceId: selectedLocation?.id,
         images,
@@ -375,7 +376,7 @@ export default function CreateListingScreen() {
     !title.trim() ||
     !description.trim() ||
     !parseAmountInput(price) ||
-    !selectedLocation ||
+    (!selectedLocation && !customLocationText.trim()) ||
     (type === "PROPERTY" &&
       agencyFeeType === "PERCENTAGE" &&
       Number(agencyFee) > 100) ||
@@ -440,6 +441,8 @@ export default function CreateListingScreen() {
         label="Listing location"
         selected={selectedLocation}
         onSelect={setSelectedLocation}
+        onTextChange={setCustomLocationText}
+        allowCustom
         required
       />
 

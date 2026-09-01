@@ -1,7 +1,7 @@
 import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,6 +13,9 @@ import { ListingsModule } from './listings/listings.module';
 import { AgentsModule } from './agents/agents.module';
 import { LocationsModule } from './locations/locations.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { AdminModule } from './admin/admin.module';
+import { ObservabilityModule } from './observability/observability.module';
+import { RequestMetricsInterceptor } from './observability/request-metrics.interceptor';
 
 @Module({
   imports: [
@@ -35,6 +38,8 @@ import { UploadsModule } from './uploads/uploads.module';
     AgentsModule,
     LocationsModule,
     UploadsModule,
+    ObservabilityModule,
+    AdminModule,
   ],
   providers: [
     {
@@ -44,6 +49,10 @@ import { UploadsModule } from './uploads/uploads.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestMetricsInterceptor,
     },
   ],
 })

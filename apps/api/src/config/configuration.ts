@@ -17,6 +17,16 @@ export default () => ({
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+  storage: {
+    provider: process.env.STORAGE_PROVIDER ?? 'cloudinary',
+  },
+  media: {
+    serviceUrl: process.env.MEDIA_SERVICE_URL ?? 'http://127.0.0.1:3001',
+    publicUrl: process.env.MEDIA_PUBLIC_URL ?? process.env.MEDIA_SERVICE_URL,
+    projectSlug: process.env.MEDIA_PROJECT_SLUG ?? 'findam',
+    apiKey: process.env.MEDIA_API_KEY,
+    folderPath: process.env.MEDIA_FOLDER_PATH,
+  },
   google: {
     clientIds: (process.env.GOOGLE_CLIENT_IDS ?? '')
       .split(',')

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants";
 import { useLocationStore } from "../../store/location-store";
 
@@ -16,8 +16,12 @@ export default function LocationSettingsScreen() {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== "granted") {
         Alert.alert(
-          "Location is optional",
-          "Permission was not granted. You can still search listings by name and location.",
+          "Enable location in Settings",
+          "Find Am needs device location permission to activate location-based search.",
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ],
         );
         return;
       }
@@ -38,10 +42,7 @@ export default function LocationSettingsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Location</Text>
-      <Text style={styles.intro}>
-        Turn location access on or off. Search distance is selected separately
-        whenever you search for a listing.
-      </Text>
+      <Text style={styles.intro}>This setting controls location search throughout Find Am. Turn it off to remove location filtering and distance controls from searches.</Text>
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>

@@ -64,13 +64,13 @@ export function ListingFeed({
       fetchListings({
         ...filters,
         type: type ?? filters?.type,
-        q: query ?? filters?.q,
-        propertyType: propertyType ?? filters?.propertyType,
-        category: category ?? filters?.category,
-        tenure: tenure ?? filters?.tenure,
-        offerType: offerType ?? filters?.offerType,
-        bedrooms: bedrooms ?? filters?.bedrooms,
-        limit: 30,
+        q: filters ? filters.q : query,
+        propertyType: filters ? filters.propertyType : propertyType,
+        category: filters ? filters.category : category,
+        tenure: filters ? filters.tenure : tenure,
+        offerType: filters ? filters.offerType : offerType,
+        bedrooms: filters ? filters.bedrooms : bedrooms,
+        limit: filters?.limit ?? 30,
         latitude: filters?.latitude,
         longitude: filters?.longitude,
         radiusKm: filters?.radiusKm,
@@ -111,12 +111,15 @@ export function ListingFeed({
       keyExtractor={(item) => item.id}
       horizontal={horizontal}
       showsHorizontalScrollIndicator={false}
+      style={!horizontal ? styles.feed : undefined}
       refreshing={!horizontal && result.isRefetching}
       onRefresh={horizontal ? undefined : result.refetch}
       contentContainerStyle={horizontal ? styles.row : styles.list}
       ListEmptyComponent={
         <Text style={styles.message}>
-          No listings found yet. Pull down to refresh.
+          {filters
+            ? "No listings match your search. Change the filters or clear the search."
+            : "No listings found yet. Pull down to refresh."}
         </Text>
       }
       renderItem={({ item }) => (
@@ -174,6 +177,7 @@ export const locationLabel = (listing: Listing) =>
     .join(", ") ||
   "Location not provided";
 const styles = StyleSheet.create({
+  feed: { flex: 1 },
   message: { color: COLORS.muted, paddingHorizontal: 16, paddingVertical: 18 },
   connectionCard: {
     margin: 16,

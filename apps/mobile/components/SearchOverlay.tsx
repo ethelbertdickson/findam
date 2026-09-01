@@ -1,7 +1,7 @@
 import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import * as DeviceLocation from "expo-location";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -27,6 +27,7 @@ import type {
 import { formatAmountInput, parseAmountInput } from "../utils/currency";
 import { Button } from "./Button";
 import { LocationAutocomplete } from "./LocationAutocomplete";
+import { useLocationStore } from "../store/location-store";
 
 type Option = { label: string; value: string };
 
@@ -148,8 +149,8 @@ export function SearchOverlay({
   onSearch: (filters: ListingFilters) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [offerType, setOfferType] = useState<PropertyOfferType>("SALE");
-  const [tenure, setTenure] = useState<LandTenure>("SALE");
+  const [offerType, setOfferType] = useState<PropertyOfferType | undefined>();
+  const [tenure, setTenure] = useState<LandTenure | undefined>();
   const [propertyType, setPropertyType] = useState("");
   const [bedrooms, setBedrooms] = useState("");
   const [category, setCategory] = useState("");
@@ -157,8 +158,38 @@ export function SearchOverlay({
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [location, setLocation] = useState<LocationSuggestion | null>(null);
+  const [locationText, setLocationText] = useState("");
+  const [locationCleared, setLocationCleared] = useState(false);
   const [radiusKm, setRadiusKm] = useState(0);
   const [locating, setLocating] = useState(false);
+  const configuredLocation = useLocationStore();
+
+  useEffect(() => {
+    if (!visible) return;
+    if (!configuredLocation.enabled || !configuredLocation.searchActive) {
+      setLocation(null);
+      setRadiusKm(0);
+      setLocationCleared(false);
+      return;
+    }
+    if (locationCleared) return;
+    if (configuredLocation.latitude === null || configuredLocation.longitude === null) return;
+    const { latitude, longitude } = configuredLocation;
+    setLocation((current) => current ?? {
+      id: `settings:${latitude},${longitude}`,
+      provider: "DEVICE",
+      formattedAddress: "Current device location",
+      name: "Current device location",
+      countryName: "Current location",
+      countryCode: "XX",
+      stateName: "Current location",
+      cityName: "Current location",
+      latitude,
+      longitude,
+      resultType: "device",
+    });
+    setRadiusKm((current) => current || configuredLocation.radiusKm);
+  }, [visible, locationCleared, configuredLocation.enabled, configuredLocation.searchActive, configuredLocation.latitude, configuredLocation.longitude, configuredLocation.radiusKm]);
 
   const title =
     type === "PROPERTY"
@@ -168,12 +199,28 @@ export function SearchOverlay({
         : type === "HOUSEHOLD"
           ? "Search household finds"
           : "Search Find Am";
+  const deviceLocationActive = location?.provider === "DEVICE";
 
   const submit = () => {
     const selfContained = type === "PROPERTY" && bedrooms === "SELF";
+    const parsedMinPrice = minPrice ? parseAmountInput(minPrice) : undefined;
+    const parsedMaxPrice = maxPrice ? parseAmountInput(maxPrice) : undefined;
+    if (
+      parsedMinPrice !== undefined &&
+      parsedMaxPrice !== undefined &&
+      parsedMinPrice > parsedMaxPrice
+    ) {
+      Alert.alert(
+        "Check the price range",
+        "Minimum price cannot be greater than maximum price.",
+      );
+      return;
+    }
     onSearch({
       type,
-      q: query.trim() || undefined,
+      q: [query.trim(), !location ? locationText.trim() : ""]
+        .filter(Boolean)
+        .join(" ") || undefined,
       offerType: type === "PROPERTY" ? offerType : undefined,
       tenure: type === "LAND" ? tenure : undefined,
       propertyType:
@@ -194,8 +241,8 @@ export function SearchOverlay({
         type === "HOUSEHOLD"
           ? (condition as HouseholdCondition) || undefined
           : undefined,
-      minPrice: minPrice ? parseAmountInput(minPrice) : undefined,
-      maxPrice: maxPrice ? parseAmountInput(maxPrice) : undefined,
+      minPrice: parsedMinPrice,
+      maxPrice: parsedMaxPrice,
       latitude: location?.latitude,
       longitude: location?.longitude,
       radiusKm: location && radiusKm > 0 ? radiusKm : undefined,
@@ -205,6 +252,14 @@ export function SearchOverlay({
   };
 
   const useCurrentLocation = async () => {
+    if (deviceLocationActive) {
+      configuredLocation.disableSearch();
+      setLocation(null);
+      setLocationText("");
+      setRadiusKm(0);
+      setLocationCleared(true);
+      return;
+    }
     setLocating(true);
     try {
       const permission =
@@ -222,10 +277,15 @@ export function SearchOverlay({
       });
       const latitude = current.coords.latitude;
       const longitude = current.coords.longitude;
-      const [address] = await DeviceLocation.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      let address: DeviceLocation.LocationGeocodedAddress | undefined;
+      try {
+        [address] = await DeviceLocation.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+      } catch {
+        // Coordinates are still valid when the device geocoder is unavailable.
+      }
       const addressParts = [
         address?.name,
         address?.street,
@@ -254,6 +314,8 @@ export function SearchOverlay({
         longitude,
         resultType: "device",
       });
+      setLocationCleared(false);
+      configuredLocation.setLocation(latitude, longitude);
     } catch {
       Alert.alert(
         "Location unavailable",
@@ -298,13 +360,14 @@ export function SearchOverlay({
               <View style={styles.tabs}>
                 {(
                   [
+                    ["All", undefined],
                     ["Buy", "SALE"],
                     ["Rent", "RENT"],
                     ["Short Let", "SHORT_LET"],
-                  ] as [string, PropertyOfferType][]
+                  ] as [string, PropertyOfferType | undefined][]
                 ).map(([label, value]) => (
                   <Pressable
-                    key={value}
+                    key={value || "ALL"}
                     style={[styles.tab, offerType === value && styles.tabActive]}
                     onPress={() => setOfferType(value)}
                   >
@@ -325,12 +388,13 @@ export function SearchOverlay({
               <View style={styles.tabs}>
                 {(
                   [
+                    ["All", undefined],
                     ["Buy", "SALE"],
                     ["Lease", "LEASE"],
-                  ] as [string, LandTenure][]
+                  ] as [string, LandTenure | undefined][]
                 ).map(([label, value]) => (
                   <Pressable
-                    key={value}
+                    key={value || "ALL"}
                     style={[styles.tab, tenure === value && styles.tabActive]}
                     onPress={() => setTenure(value)}
                   >
@@ -359,18 +423,34 @@ export function SearchOverlay({
                 onSubmitEditing={submit}
                 autoFocus
               />
+              {query ? (
+                <Pressable accessibilityLabel="Clear keyword" onPress={() => setQuery("")}>
+                  <Ionicons name="close-circle" size={20} color={COLORS.muted} />
+                </Pressable>
+              ) : null}
             </View>
 
             <LocationAutocomplete
               label="Location"
               placeholder="Search any area, city or country"
               selected={location}
-              onSelect={setLocation}
+              onSelect={(value) => {
+                if (!value && location?.provider === "DEVICE")
+                  configuredLocation.disableSearch();
+                setLocation(value);
+                setLocationCleared(!value);
+                if (value) setLocationText(value.formattedAddress);
+              }}
+              onTextChange={setLocationText}
             />
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Use my current location"
+              accessibilityLabel={
+                deviceLocationActive
+                  ? "Turn off my location"
+                  : "Use my current location"
+              }
               disabled={locating}
               style={[styles.currentLocationButton, locating && styles.disabled]}
               onPress={useCurrentLocation}
@@ -381,7 +461,11 @@ export function SearchOverlay({
                 color={COLORS.primary}
               />
               <Text style={styles.currentLocationText}>
-                {locating ? "Finding your location…" : "Use my current location"}
+                {locating
+                  ? "Finding your location…"
+                  : deviceLocationActive
+                    ? "Turn off my location"
+                    : "Use my current location"}
               </Text>
             </Pressable>
 
@@ -455,22 +539,14 @@ export function SearchOverlay({
             )}
 
             <View style={styles.grid}>
-              <TextInput
-                style={styles.priceInput}
-                value={minPrice}
-                onChangeText={(value) => setMinPrice(formatAmountInput(value))}
-                placeholder="Min. price (₦)"
-                placeholderTextColor={COLORS.muted}
-                keyboardType="numeric"
-              />
-              <TextInput
-                style={styles.priceInput}
-                value={maxPrice}
-                onChangeText={(value) => setMaxPrice(formatAmountInput(value))}
-                placeholder="Max. price (₦)"
-                placeholderTextColor={COLORS.muted}
-                keyboardType="numeric"
-              />
+              <View style={styles.priceInputWrap}>
+                <TextInput style={styles.priceInput} value={minPrice} onChangeText={(value) => setMinPrice(formatAmountInput(value))} placeholder="Minimum price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />
+                {minPrice ? <Pressable accessibilityLabel="Clear minimum price" onPress={() => setMinPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}
+              </View>
+              <View style={styles.priceInputWrap}>
+                <TextInput style={styles.priceInput} value={maxPrice} onChangeText={(value) => setMaxPrice(formatAmountInput(value))} placeholder="Maximum price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />
+                {maxPrice ? <Pressable accessibilityLabel="Clear maximum price" onPress={() => setMaxPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}
+              </View>
             </View>
 
             <Button label="Show results" onPress={submit} />
@@ -599,6 +675,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 14,
     fontSize: 13,
+  },
+  priceInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   optionBackdrop: {
     flex: 1,

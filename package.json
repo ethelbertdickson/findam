@@ -6,6 +6,11 @@
   "scripts": {
     "api:dev": "npm --prefix apps/api run start:dev",
     "api:build": "npm --prefix apps/api run build",
+    "api:admin:create": "npm --prefix apps/api run admin:create",
+    "console:dev": "npm --prefix apps/api-console run dev",
+    "console:build": "npm --prefix apps/api-console run build",
+    "media:dev": "npm --prefix apps/media run start:dev",
+    "media:build": "npm --prefix apps/media run build",
     "mobile:start": "npm --prefix apps/mobile run start",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down"

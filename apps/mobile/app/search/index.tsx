@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -160,6 +161,7 @@ export default function SearchScreen() {
   const [maxPrice, setMaxPrice] = useState("");
   const [searchLocation, setSearchLocation] =
     useState<LocationSuggestion | null>(null);
+  const [searchLocationText, setSearchLocationText] = useState("");
   const [radiusKm, setRadiusKm] = useState(10);
   const [submitted, setSubmitted] = useState<ListingFilters | null>(null);
   const [searchVersion, setSearchVersion] = useState(0);
@@ -172,9 +174,17 @@ export default function SearchScreen() {
 
   const search = () => {
     const selfContained = type === "PROPERTY" && bedrooms === "SELF";
+    const parsedMinPrice = minPrice ? parseAmountInput(minPrice) : undefined;
+    const parsedMaxPrice = maxPrice ? parseAmountInput(maxPrice) : undefined;
+    if (parsedMinPrice !== undefined && parsedMaxPrice !== undefined && parsedMinPrice > parsedMaxPrice) {
+      Alert.alert("Check the price range", "Minimum price cannot be greater than maximum price.");
+      return;
+    }
     setSubmitted({
       type,
-      q: query.trim() || undefined,
+      q: [query.trim(), !searchLocation ? searchLocationText.trim() : ""]
+        .filter(Boolean)
+        .join(" ") || undefined,
       offerType: type === "PROPERTY" ? offerType : undefined,
       tenure: type === "LAND" ? tenure : undefined,
       propertyType:
@@ -195,8 +205,8 @@ export default function SearchScreen() {
         type === "HOUSEHOLD"
           ? (condition as HouseholdCondition) || undefined
           : undefined,
-      minPrice: minPrice ? parseAmountInput(minPrice) : undefined,
-      maxPrice: maxPrice ? parseAmountInput(maxPrice) : undefined,
+      minPrice: parsedMinPrice,
+      maxPrice: parsedMaxPrice,
       latitude: searchLocation?.latitude,
       longitude: searchLocation?.longitude,
       radiusKm: searchLocation ? radiusKm : undefined,
@@ -287,12 +297,17 @@ export default function SearchScreen() {
           returnKeyType="search"
           onSubmitEditing={search}
         />
+        {query ? <Pressable accessibilityLabel="Clear keyword" onPress={() => setQuery("")}><Ionicons name="close-circle" size={20} color={COLORS.muted} /></Pressable> : null}
       </View>
       <LocationAutocomplete
         label="Search location"
         placeholder="Search any area, city or country"
         selected={searchLocation}
-        onSelect={setSearchLocation}
+        onSelect={(value) => {
+          setSearchLocation(value);
+          if (value) setSearchLocationText(value.formattedAddress);
+        }}
+        onTextChange={setSearchLocationText}
       />
       {searchLocation && (
         <View style={styles.radiusSection}>
@@ -357,22 +372,8 @@ export default function SearchScreen() {
         </View>
       )}
       <View style={styles.grid}>
-        <TextInput
-          style={styles.priceInput}
-          value={minPrice}
-          onChangeText={(value) => setMinPrice(formatAmountInput(value))}
-          placeholder="Min. price (₦)"
-          placeholderTextColor={COLORS.muted}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.priceInput}
-          value={maxPrice}
-          onChangeText={(value) => setMaxPrice(formatAmountInput(value))}
-          placeholder="Max. price (₦)"
-          placeholderTextColor={COLORS.muted}
-          keyboardType="numeric"
-        />
+        <View style={styles.priceInputWrap}><TextInput style={styles.priceInput} value={minPrice} onChangeText={(value) => setMinPrice(formatAmountInput(value))} placeholder="Min. price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />{minPrice ? <Pressable accessibilityLabel="Clear minimum price" onPress={() => setMinPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}</View>
+        <View style={styles.priceInputWrap}><TextInput style={styles.priceInput} value={maxPrice} onChangeText={(value) => setMaxPrice(formatAmountInput(value))} placeholder="Max. price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />{maxPrice ? <Pressable accessibilityLabel="Clear maximum price" onPress={() => setMaxPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}</View>
       </View>
       <Button label="Search" onPress={search} loading={results.isFetching} />
       {submitted && (
@@ -488,6 +489,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 14,
   },
+  priceInputWrap: { flex: 1, flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: COLORS.border },
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",

@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MEDIA_DATABASE_URL")
+}
+
+enum MediaAssetKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+model MediaFolder {
+  id        String       @id @default(uuid())
+  projectId String
+  project   MediaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  path      String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  assets    MediaAsset[]
+
+  @@unique([projectId, path])
+  @@index([projectId, createdAt])
+}
+
+model MediaAsset {
+  id               String         @id @default(uuid())
+  projectId        String
+  project          MediaProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folderId         String?
+  folder           MediaFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  originalFilename String
+  storedFilename   String         @unique
+  mimeType         String
+  kind             MediaAssetKind
+  sizeBytes        Int
+  urlPath          String         @unique
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+
+  @@index([projectId, createdAt])
+  @@index([folderId])
+  @@index([kind])
+}
+
+model MediaProject {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  folders     MediaFolder[]
+  assets      MediaAsset[]
+  apiKeys     MediaApiKey[]
+
+  @@index([createdAt])
+}
+
+model MediaApiKey {
+  id         String       @id @default(uuid())
+  projectId  String
+  project    MediaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String
+  keyHash    String       @unique
+  lastFour   String
+  createdAt  DateTime     @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([projectId, createdAt])
+  @@index([projectId, revokedAt])
+}

@@ -18,6 +18,8 @@ interface GeoapifyResult {
   city?: string;
   district?: string;
   suburb?: string;
+  street?: string;
+  municipality?: string;
   postcode?: string;
   lat: number;
   lon: number;
@@ -41,7 +43,7 @@ export class LocationsService {
     const params = new URLSearchParams({
       text: query.q.trim(),
       format: 'json',
-      limit: String(query.limit),
+      limit: String(Math.min(query.limit, 10)),
       lang: 'en',
       apiKey,
     });
@@ -49,28 +51,43 @@ export class LocationsService {
       params.set('bias', `proximity:${query.longitude},${query.latitude}`);
 
     try {
-      const response = await fetch(
-        `https://api.geoapify.com/v1/geocode/autocomplete?${params}`,
-        { signal: AbortSignal.timeout(8000) },
-      );
-      if (!response.ok) throw new Error(`Geoapify returned ${response.status}`);
-      const data = (await response.json()) as { results?: GeoapifyResult[] };
-      return (data.results ?? []).map((item) => ({
-        id: item.place_id,
-        provider: 'GEOAPIFY' as const,
-        formattedAddress: item.formatted,
-        name: item.name,
-        countryName: item.country || 'Unknown',
-        countryCode: item.country_code?.toUpperCase() || 'XX',
-        stateName: item.state || item.county || item.country || 'Unknown',
-        cityName:
-          item.city || item.county || item.state || item.country || 'Unknown',
-        areaName: item.suburb || item.district || item.city || item.name,
-        postcode: item.postcode,
-        latitude: item.lat,
-        longitude: item.lon,
-        resultType: item.result_type,
-      }));
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const response = await fetch(
+            `https://api.geoapify.com/v1/geocode/autocomplete?${params}`,
+            { signal: AbortSignal.timeout(15000) },
+          );
+          if (!response.ok)
+            throw new Error(`Geoapify returned ${response.status}`);
+          const data = (await response.json()) as {
+            results?: GeoapifyResult[];
+          };
+          return (data.results ?? []).map((item) => ({
+            id: item.place_id,
+            provider: 'GEOAPIFY' as const,
+            formattedAddress: item.formatted,
+            name: item.name,
+            countryName: item.country || 'Unknown',
+            countryCode: item.country_code?.toUpperCase() || 'XX',
+            stateName: item.state || item.county || item.country || 'Unknown',
+            cityName:
+              item.city ||
+              item.county ||
+              item.state ||
+              item.country ||
+              'Unknown',
+            areaName: item.suburb || item.district || item.municipality || item.street || item.city || item.name,
+            postcode: item.postcode,
+            latitude: item.lat,
+            longitude: item.lon,
+            resultType: item.result_type,
+          }));
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError;
     } catch (error) {
       if (error instanceof ServiceUnavailableException) throw error;
       throw new BadGatewayException(

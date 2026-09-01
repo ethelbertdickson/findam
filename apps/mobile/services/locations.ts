@@ -14,6 +14,7 @@ export async function autocompleteLocations(
         latitude: bias?.latitude,
         longitude: bias?.longitude,
       },
+      timeout: 35000,
     },
   );
   return data;

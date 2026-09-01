@@ -4,15 +4,18 @@ A mobile marketplace for property rentals, land, and used household items.
 
 - **Mobile**: Expo (React Native) + TypeScript + Expo Router, TanStack Query, Zustand
 - **Backend**: NestJS + TypeScript + Prisma + PostgreSQL/PostGIS
-- **Images**: Cloudinary (behind a swappable storage abstraction)
+- **API Console**: React + Vite operations dashboard (local foundation)
+- **Media**: self-hosted NestJS media service with local disk storage and PostgreSQL metadata
 
 The mobile app talks **only** to the NestJS REST API (`/api/v1`) over HTTPS. It never
 connects to PostgreSQL directly.
 
 ```
 apps/
-├── mobile/   Expo Router app (guest browsing, auth, listings, agents, settings)
-└── api/      NestJS REST API (auth, listings, agents, locations, uploads, ...)
+├── mobile/       Expo Router app (guest browsing, auth, listings, agents, settings)
+├── api/          NestJS REST API (auth, listings, agents, locations, uploads, ...)
+├── api-console/  React operations dashboard for API and media administration
+└── media/        NestJS media service (folders, uploads, metadata, local files)
 ```
 
 ## Status: Core marketplace implementation
@@ -64,6 +67,96 @@ npm run start              # scan the QR code with Expo Go, or press a/i for a s
 
 Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to point at your backend
 (use your machine's LAN IP instead of `localhost` when testing on a physical device).
+
+### 4. API Console
+
+```bash
+cd apps/api-console
+npm install
+npm run dev
+```
+
+The console opens at `http://localhost:5173`, is protected by an
+administrator-only browser session, and displays live API health, database
+latency, marketplace totals, seven-day growth, and recent activity. Its Users
+and Listings pages provide live, searchable, paginated views of marketplace
+records. Administrators can safely activate/deactivate non-admin accounts and
+approve, reject, or archive listings; every confirmed change is retained in the
+console Audit log. The console also includes five-minute in-process API
+telemetry and a persisted database-health task history for local operations.
+
+### 5. Media service
+
+The first self-hosted Cloudinary replacement slice provides protected folders,
+image/video/PDF uploads, searchable metadata, and public delivery URLs. Media
+metadata uses the dedicated `media` PostgreSQL schema, while original files are
+stored under `apps/media/storage` locally.
+
+```bash
+cd apps/media
+cp .env.example .env
+# Set JWT_ACCESS_SECRET to the same value used by apps/api/.env
+npm install
+npx prisma migrate dev
+npm run start:dev
+```
+
+- Media API: `http://localhost:3001/api/v1/admin`
+- Media health: `http://localhost:3001/api/v1/health`
+- Public file delivery: `http://localhost:3001/media/<stored-file>`
+
+Keep the API, media service, and API Console running together. The console
+proxies its Media workspace to port 3001 and reuses the protected Findam admin
+session.
+
+The media service uses `MEDIA_PORT` rather than the API service's `PORT`
+variable, preventing both NestJS applications from accidentally binding to
+port 3000 when environment settings are shared locally.
+
+Projects are created only by an administrator in the console. Each app receives
+a revocable key scoped to one project; the complete key is displayed once and
+only its SHA-256 hash is stored. An app uploads with:
+
+```http
+POST /api/v1/projects/findam/assets
+Authorization: Bearer <project-api-key>
+Content-Type: multipart/form-data
+```
+
+The multipart body contains `file` and may include `folderPath`. Project keys
+cannot create projects or access another project's media.
+
+### Connect the Findam API to self-hosted media
+
+In the console, open **Projects**, choose **Findam**, and generate a key named
+`Findam API`. Copy it immediately; the complete key is shown only once. Then set
+these server-only values in `apps/api/.env`:
+
+```bash
+STORAGE_PROVIDER=self-hosted
+MEDIA_SERVICE_URL=http://127.0.0.1:3001
+MEDIA_PUBLIC_URL=http://localhost:3001
+MEDIA_PROJECT_SLUG=findam
+MEDIA_API_KEY=the-key-copied-from-the-project-dialog
+```
+
+Restart `npm run api:dev` after changing the file. For a physical phone,
+`MEDIA_PUBLIC_URL` must use the computer's LAN address instead of `localhost`.
+The mobile application continues uploading to the main Findam API and never
+receives the project key. Set `STORAGE_PROVIDER=cloudinary` to use the previous
+provider during the transition.
+
+Create the first administrator without placing its password in a file or shell
+history:
+
+```bash
+read -r -p "Admin email: " FINDAM_ADMIN_EMAIL
+read -r -s -p "Admin password (12+ characters): " FINDAM_ADMIN_PASSWORD
+printf '\n'
+export FINDAM_ADMIN_EMAIL FINDAM_ADMIN_PASSWORD
+npm run api:admin:create
+unset FINDAM_ADMIN_EMAIL FINDAM_ADMIN_PASSWORD
+```
 
 ### Google sign-in setup
 

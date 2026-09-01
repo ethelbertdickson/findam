@@ -39,6 +39,23 @@ enum ListingStatus {
   ARCHIVED
 }
 
+enum AdminAuditAction {
+  USER_ACTIVATED
+  USER_DEACTIVATED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  LISTING_ARCHIVED
+}
+
+enum OperationalTaskName {
+  DATABASE_HEALTH_CHECK
+}
+
+enum OperationalTaskStatus {
+  SUCCEEDED
+  FAILED
+}
+
 enum PropertyType {
   APARTMENT
   FLAT
@@ -132,6 +149,8 @@ model User {
   ratingsGiven        AgentRating[]        @relation("RatingsAuthored")
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  adminAuditLogs      AdminAuditLog[]      @relation("AdminAuditActor")
+  operationalTaskRuns OperationalTaskRun[] @relation("OperationalTaskActor")
 
   createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
@@ -162,6 +181,35 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model AdminAuditLog {
+  id         String           @id @default(uuid())
+  action     AdminAuditAction
+  actorId    String
+  actor      User             @relation("AdminAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([action])
+}
+
+model OperationalTaskRun {
+  id         String                @id @default(uuid())
+  task       OperationalTaskName
+  status     OperationalTaskStatus
+  durationMs Int
+  detail     String
+  actorId    String
+  actor      User                  @relation("OperationalTaskActor", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt  DateTime              @default(now())
+
+  @@index([task, createdAt])
+  @@index([status, createdAt])
 }
 
 model AgentProfile {

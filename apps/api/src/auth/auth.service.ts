@@ -18,7 +18,7 @@ import type {
 } from './types/jwt-payload.type';
 import { parseDurationMs } from './utils/duration.util';
 import type { PasswordResetConfirmDto } from './dto/password-reset.dto';
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 
 const REFRESH_TOKEN_HASH_ROUNDS = 12;
 
@@ -67,7 +67,7 @@ export class AuthService {
       throw new ServiceUnavailableException('Google sign-in is not configured');
     }
 
-    let payload;
+    let payload: TokenPayload | undefined;
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken,
@@ -102,6 +102,12 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
+    const { accessToken, refreshToken: rotatedRefreshToken } =
+      await this.refreshWithUser(refreshToken);
+    return { accessToken, refreshToken: rotatedRefreshToken };
+  }
+
+  async refreshWithUser(refreshToken: string): Promise<AuthResult> {
     const payload = await this.verifyRefreshToken(refreshToken);
 
     const stored = await this.prisma.refreshToken.findUnique({
@@ -128,13 +134,21 @@ export class AuthService {
     }
 
     const user = await this.usersService.getOrThrow(stored.userId);
+    if (!user.isActive) {
+      await this.prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException('This account has been deactivated');
+    }
 
     await this.prisma.refreshToken.update({
       where: { id: stored.id },
       data: { revokedAt: new Date() },
     });
 
-    return this.issueTokens(user.id, user.email, user.role);
+    const tokens = await this.issueTokens(user.id, user.email, user.role);
+    return { ...tokens, user: toPublicUser(user) };
   }
 
   async logout(refreshToken: string): Promise<void> {

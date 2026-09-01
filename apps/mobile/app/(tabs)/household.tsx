@@ -7,6 +7,7 @@ import { MarketplaceTabHeader } from "../../components/MarketplaceTabHeader";
 import { SearchOverlay } from "../../components/SearchOverlay";
 import { COLORS } from "../../constants";
 import type { ListingFilters } from "../../services/listings";
+import { useLocationStore } from "../../store/location-store";
 import type { HouseholdCategory } from "../../types";
 
 const CATEGORIES: { label: string; value?: HouseholdCategory }[] = [
@@ -28,6 +29,15 @@ export default function HouseholdScreen() {
   const [selected, setSelected] = useState<HouseholdCategory | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<ListingFilters | null>(null);
+  const locationSearchActive = useLocationStore((state) => state.searchActive);
+  useEffect(() => {
+    if (locationSearchActive) return;
+    setSearchFilters((current) =>
+      current && (current.latitude !== undefined || current.longitude !== undefined || current.radiusKm !== undefined)
+        ? { ...current, latitude: undefined, longitude: undefined, radiusKm: undefined }
+        : current,
+    );
+  }, [locationSearchActive]);
   useEffect(() => {
     if (params.search) setSearchOpen(true);
   }, [params.search]);

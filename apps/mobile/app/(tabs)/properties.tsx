@@ -8,6 +8,7 @@ import { SearchOverlay } from "../../components/SearchOverlay";
 import { COLORS } from "../../constants";
 import type { ListingFilters } from "../../services/listings";
 import type { PropertyType } from "../../types";
+import { useLocationStore } from "../../store/location-store";
 
 const PROPERTY_TYPES: { label: string; value?: PropertyType }[] = [
   { label: "All" },
@@ -34,6 +35,15 @@ export default function PropertiesScreen() {
   const [selected, setSelected] = useState<PropertyType | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<ListingFilters | null>(null);
+  const locationSearchActive = useLocationStore((state) => state.searchActive);
+  useEffect(() => {
+    if (locationSearchActive) return;
+    setSearchFilters((current) =>
+      current && (current.latitude !== undefined || current.longitude !== undefined || current.radiusKm !== undefined)
+        ? { ...current, latitude: undefined, longitude: undefined, radiusKm: undefined }
+        : current,
+    );
+  }, [locationSearchActive]);
   useEffect(() => {
     if (params.search) setSearchOpen(true);
   }, [params.search]);

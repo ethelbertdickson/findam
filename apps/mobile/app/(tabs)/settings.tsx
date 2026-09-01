@@ -39,9 +39,9 @@ const ROWS: SettingsRow[] = [
   },
   { label: "Notifications", icon: "notifications-outline" },
   { label: "Location", icon: "location-outline", href: "/location" },
-  { label: "Privacy", icon: "lock-closed-outline" },
-  { label: "Security", icon: "shield-checkmark-outline" },
-  { label: "App settings", icon: "options-outline" },
+  { label: "Privacy", icon: "lock-closed-outline", href: "/privacy" },
+  { label: "Security", icon: "shield-checkmark-outline", href: "/security" },
+  { label: "App settings", icon: "options-outline", href: "/app-settings" },
 ];
 
 export default function SettingsScreen() {

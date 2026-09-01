@@ -16,8 +16,24 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) return Alert.alert("Missing details", "Enter your email and password.");
-    setLoading(true); try { const session = await auth.login({ email: email.trim().toLowerCase(), password }); await useAuthStore.getState().setSession(session); router.back(); } catch (error: any) { Alert.alert("Could not log in", getApiErrorMessage(error, "Check your email and password.")); } finally { setLoading(false); }
+    if (!email || !password)
+      return Alert.alert("Missing details", "Enter your email and password.");
+    setLoading(true);
+    try {
+      const session = await auth.login({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      await useAuthStore.getState().setSession(session);
+      router.back();
+    } catch (error: any) {
+      Alert.alert(
+        "Could not log in",
+        getApiErrorMessage(error, "Check your email and password."),
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,7 +66,9 @@ export default function LoginScreen() {
       <Button label="Log in" onPress={handleLogin} loading={loading} />
       <Text style={styles.or}>or</Text>
       <GoogleSignInButton />
-      <Link href="/auth/reset" style={styles.link}><Text style={styles.linkText}>Forgot password?</Text></Link>
+      <Link href="/auth/reset" style={styles.link}>
+        <Text style={styles.linkText}>Forgot password?</Text>
+      </Link>
 
       <Link href="/auth/register" style={styles.link}>
         <Text style={styles.linkText}>

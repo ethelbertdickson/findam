@@ -20,6 +20,8 @@ export function LocationAutocomplete({
   onSelect,
   bias,
   required = false,
+  allowCustom = false,
+  onTextChange,
 }: {
   label?: string;
   placeholder?: string;
@@ -27,6 +29,8 @@ export function LocationAutocomplete({
   onSelect: (location: LocationSuggestion | null) => void;
   bias?: { latitude: number; longitude: number };
   required?: boolean;
+  allowCustom?: boolean;
+  onTextChange?: (value: string) => void;
 }) {
   const [text, setText] = useState(selected?.formattedAddress || "");
   const [debounced, setDebounced] = useState("");
@@ -48,6 +52,7 @@ export function LocationAutocomplete({
     queryFn: () => autocompleteLocations(debounced, bias),
     enabled: focused && debounced.length >= 3 && !confirmed,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   return (
@@ -63,6 +68,7 @@ export function LocationAutocomplete({
           value={text}
           onChangeText={(value) => {
             setText(value);
+            onTextChange?.(value);
             if (selected) onSelect(null);
           }}
           onFocus={() => setFocused(true)}
@@ -79,6 +85,7 @@ export function LocationAutocomplete({
             onPress={() => {
               setText("");
               setDebounced("");
+              onTextChange?.("");
               onSelect(null);
             }}
           >
@@ -116,7 +123,8 @@ export function LocationAutocomplete({
 
       {suggestions.isError ? (
         <Text style={styles.error}>
-          Location suggestions are unavailable. Check the Geoapify API key.
+          Location suggestions are temporarily unavailable. You can continue
+          with a manually entered location.
         </Text>
       ) : selected ? (
         <View style={styles.confirmed}>
@@ -126,7 +134,11 @@ export function LocationAutocomplete({
           </Text>
         </View>
       ) : required && text.length > 0 ? (
-        <Text style={styles.help}>Select one of the suggested locations.</Text>
+        <Text style={styles.help}>
+          {allowCustom
+            ? "No exact match? You can continue with this location."
+            : "Select one of the suggested locations."}
+        </Text>
       ) : null}
     </View>
   );

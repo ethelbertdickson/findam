@@ -11,6 +11,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.findam.app"
     },
+    "web": {
+      "favicon": "./assets/findam-icon.png"
+    },
     "android": {
       "package": "com.findam.app",
       "adaptiveIcon": {
@@ -18,9 +21,6 @@
         "foregroundImage": "./assets/findam-icon.png"
       },
       "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "favicon": "./assets/findam-icon.png"
     },
     "plugins": [
       "expo-router",

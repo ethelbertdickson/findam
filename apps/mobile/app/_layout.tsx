@@ -30,7 +30,7 @@ export default function RootLayout() {
   }, [hydrate, setUser]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="light" />
@@ -42,6 +42,7 @@ export default function RootLayout() {
               headerTintColor: COLORS.text,
               headerTitleStyle: { color: COLORS.text },
               headerShadowVisible: false,
+              animation: "slide_from_right",
             }}
           >
             <Stack.Screen name="(tabs)" />
@@ -105,6 +106,9 @@ export default function RootLayout() {
               name="location/index"
               options={{ headerShown: true, title: "Location" }}
             />
+            <Stack.Screen name="privacy" options={{ headerShown: true, title: "Privacy" }} />
+            <Stack.Screen name="security" options={{ headerShown: true, title: "Security" }} />
+            <Stack.Screen name="app-settings" options={{ headerShown: true, title: "App settings" }} />
             <Stack.Screen
               name="saved/index"
               options={{ headerShown: true, title: "Saved listings" }}
