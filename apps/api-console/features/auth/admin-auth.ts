@@ -16,6 +16,10 @@ export interface AdminSession {
 const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
 const API_URL = configuredApiUrl || '/api/v1';
 
+export function adminApiUrl(path: string) {
+  return `${API_URL}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -34,7 +38,7 @@ export async function apiRequest<T>(
   headers.set('Accept', 'application/json');
   if (init.body) headers.set('Content-Type', 'application/json');
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(adminApiUrl(path), {
     ...init,
     credentials: 'include',
     headers,

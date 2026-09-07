@@ -38,6 +38,7 @@ import {
   logoutAdmin,
   refreshAdminSession,
   restoreAdminSession,
+  adminApiUrl,
   type AdminSession,
 } from '@/features/auth/admin-auth';
 import {
@@ -46,6 +47,7 @@ import {
 } from '@/features/dashboard/admin-dashboard';
 import {
   AdminListingsPage,
+  AdminAgentsPage,
   AdminUsersPage,
 } from '@/features/management/ManagementPage';
 import { AuditLogPage } from '@/features/management/AuditLogPage';
@@ -55,10 +57,15 @@ import {
 } from '@/features/operations/OperationsPages';
 import { MediaLibraryPage } from '@/features/media/MediaLibraryPage';
 import { MediaProjectsPage } from '@/features/media/MediaProjectsPage';
+import { AdminLocationsPage } from '@/features/locations/LocationsPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 
 type ConsoleView =
   | 'overview'
   | 'users'
+  | 'agents'
+  | 'locations'
+  | 'settings'
   | 'listings'
   | 'monitoring'
   | 'tasks'
@@ -76,8 +83,8 @@ const navigation = [
     view: 'monitoring',
     enabled: true,
   },
-  { label: 'Agents', icon: Building2, view: 'agents', enabled: false },
-  { label: 'Locations', icon: MapPin, view: 'locations', enabled: false },
+  { label: 'Agents', icon: Building2, view: 'agents', enabled: true },
+  { label: 'Locations', icon: MapPin, view: 'locations', enabled: true },
   { label: 'Tasks', icon: ListTodo, view: 'tasks', enabled: true },
   { label: 'Projects', icon: FolderKanban, view: 'projects', enabled: true },
   { label: 'Media', icon: Image, view: 'media', enabled: true },
@@ -208,12 +215,35 @@ function Dashboard({
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadDashboard(), 0);
-    const interval = window.setInterval(() => void loadDashboard(), 30_000);
+    const interval = window.setInterval(() => void loadDashboard(), 15_000);
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'visible') void loadDashboard();
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
     };
   }, [loadDashboard]);
+
+  useEffect(() => {
+    const stream = new EventSource(adminApiUrl('/admin/dashboard/stream'), { withCredentials: true });
+    stream.onmessage = (event) => {
+      try {
+        const next = JSON.parse(event.data) as AdminDashboardData | { error?: string };
+        if ('api' in next) {
+          setDashboard(next);
+          setDashboardError(null);
+        }
+      } catch {
+        // Keep the last good dashboard snapshot when an event is malformed.
+      }
+    };
+    return () => stream.close();
+  }, []);
 
   const marketplace = dashboard?.marketplace;
   const stats = [
@@ -335,15 +365,14 @@ function Dashboard({
         </nav>
 
         <div className={`border-t border-sidebar-border p-3 ${sidebarCollapsed ? 'px-2' : ''}`}>
-          <div
-            className={`flex h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground/50 ${sidebarCollapsed ? 'rail-tooltip relative justify-center px-0' : ''}`}
-            aria-disabled="true"
-            data-tooltip={sidebarCollapsed ? 'Settings (coming soon)' : undefined}
+          <a
+            href="#settings"
+            className={`flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition hover:bg-sidebar-accent hover:text-sidebar-foreground ${sidebarCollapsed ? 'rail-tooltip relative justify-center px-0' : ''}`}
+            data-tooltip={sidebarCollapsed ? 'Settings' : undefined}
           >
             <Settings className="size-4" />
             <span className={sidebarCollapsed ? 'sr-only' : 'flex-1'}>Settings</span>
-            {!sidebarCollapsed ? <span className="text-[9px] uppercase tracking-wider">Soon</span> : null}
-          </div>
+          </a>
           <button
             type="button"
             onClick={() => void onLogout()}
@@ -653,6 +682,13 @@ function Dashboard({
             recoverSession={recoverSession}
             csrfToken={session.csrfToken}
           />
+        ) : activeView === 'agents' ? (
+          <AdminAgentsPage
+            recoverSession={recoverSession}
+            csrfToken={session.csrfToken}
+          />
+        ) : activeView === 'locations' ? (
+          <AdminLocationsPage recoverSession={recoverSession} />
         ) : activeView === 'listings' ? (
           <AdminListingsPage
             recoverSession={recoverSession}
@@ -675,6 +711,8 @@ function Dashboard({
             recoverSession={recoverSession}
             csrfToken={session.csrfToken}
           />
+        ) : activeView === 'settings' ? (
+          <SettingsPage session={session} />
         ) : (
           <AuditLogPage recoverSession={recoverSession} />
         )}
@@ -813,6 +851,9 @@ function titleCase(value: string) {
 function readConsoleView(hash: string): ConsoleView {
   const view = hash.replace('#', '');
   return view === 'users' ||
+    view === 'agents' ||
+    view === 'locations' ||
+    view === 'settings' ||
     view === 'listings' ||
     view === 'monitoring' ||
     view === 'tasks' ||

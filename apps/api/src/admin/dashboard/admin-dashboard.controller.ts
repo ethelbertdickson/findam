@@ -1,5 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, MessageEvent, Sse, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Observable, catchError, from, interval, map, of, startWith, switchMap } from 'rxjs';
 import { AdminRoleGuard } from '../auth/admin-role.guard';
 import { AdminDashboardService } from './admin-dashboard.service';
 
@@ -13,5 +14,16 @@ export class AdminDashboardController {
   @ApiOperation({ summary: 'Get live API and marketplace dashboard data' })
   getDashboard() {
     return this.dashboard.getDashboard();
+  }
+
+  @Sse('stream')
+  @ApiOperation({ summary: 'Stream live dashboard updates' })
+  stream(): Observable<MessageEvent> {
+    return interval(15_000).pipe(
+      startWith(0),
+      switchMap(() => from(this.dashboard.getDashboard())),
+      map((data) => ({ data })),
+      catchError(() => of({ data: { error: 'Dashboard update unavailable' } })),
+    );
   }
 }

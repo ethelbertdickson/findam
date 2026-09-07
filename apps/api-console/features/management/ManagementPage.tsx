@@ -63,13 +63,15 @@ type PendingManagementAction =
 export function AdminUsersPage({
   recoverSession,
   csrfToken,
+  fixedRole,
 }: {
   recoverSession: RecoverSession;
   csrfToken: string;
+  fixedRole?: UsersFilters['role'];
 }) {
   const [filters, setFilters] = useState<UsersFilters>({
     q: '',
-    role: '',
+    role: fixedRole ?? '',
     status: '',
     page: 1,
   });
@@ -114,6 +116,16 @@ export function AdminUsersPage({
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextQuery = search.trim();
+      setFilters((current) =>
+        current.q === nextQuery ? current : { ...current, q: nextQuery, page: 1 },
+      );
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   function submitSearch(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setFilters((current) => ({ ...current, q: search.trim(), page: 1 }));
@@ -140,8 +152,8 @@ export function AdminUsersPage({
 
   return (
     <ManagementLayout
-      title="Users"
-      description="Search and review every account using Findam."
+      title={fixedRole === 'AGENT' ? 'Agents' : 'Users'}
+      description={fixedRole === 'AGENT' ? 'Review and manage every marketplace agent.' : 'Search and review every account using Findam.'}
       icon={Users}
       total={result?.total}
       search={search}
@@ -150,7 +162,7 @@ export function AdminUsersPage({
       onSearch={submitSearch}
       filters={
         <>
-          <NativeSelect
+          {!fixedRole ? <NativeSelect
             aria-label="Filter users by role"
             value={filters.role}
             onChange={(event) =>
@@ -167,7 +179,7 @@ export function AdminUsersPage({
             <NativeSelectOption value="ADMIN">
               Administrators
             </NativeSelectOption>
-          </NativeSelect>
+          </NativeSelect> : null}
           <NativeSelect
             aria-label="Filter users by status"
             value={filters.status}
@@ -277,6 +289,10 @@ export function AdminUsersPage({
   );
 }
 
+export function AdminAgentsPage({ recoverSession, csrfToken }: { recoverSession: RecoverSession; csrfToken: string }) {
+  return <AdminUsersPage recoverSession={recoverSession} csrfToken={csrfToken} fixedRole="AGENT" />;
+}
+
 export function AdminListingsPage({
   recoverSession,
   csrfToken,
@@ -329,6 +345,16 @@ export function AdminListingsPage({
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextQuery = search.trim();
+      setFilters((current) =>
+        current.q === nextQuery ? current : { ...current, q: nextQuery, page: 1 },
+      );
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   function submitSearch(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
