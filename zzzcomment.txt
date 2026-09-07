@@ -1,0 +1,7 @@
+for the dashboard media
+display will include
+list, card. mosiac
+
+a summary/metadata pand review on right extended pane
+
+selected pix can be copied, url link copied when hover
