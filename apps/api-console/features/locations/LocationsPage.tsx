@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ChevronRight, Loader2, MapPin, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ export function AdminLocationsPage({ recoverSession }: { recoverSession: Recover
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function request<T>(work: () => Promise<T>): Promise<T> {
+  const request = useCallback(async function request<T>(work: () => Promise<T>): Promise<T> {
     try {
       return await work();
     } catch (caught) {
@@ -33,16 +33,14 @@ export function AdminLocationsPage({ recoverSession }: { recoverSession: Recover
       }
       throw caught;
     }
-  }
+  }, [recoverSession]);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
     void request(() => getLocations('/locations/countries'))
       .then(setCountries)
       .catch((caught) => setError(caught instanceof Error ? caught.message : 'Could not load countries.'))
       .finally(() => setLoading(false));
-  }, [recoverSession]);
+  }, [request]);
 
   async function selectCountry(id: string) {
     setCountryId(id); setStateId(''); setCityId(''); setStates([]); setCities([]); setAreas([]);

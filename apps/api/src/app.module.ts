@@ -21,6 +21,7 @@ import { RequestMetricsInterceptor } from './observability/request-metrics.inter
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env.production', '.env'],
       load: [configuration],
       validate: validateEnv,
     }),
