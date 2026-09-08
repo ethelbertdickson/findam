@@ -85,6 +85,14 @@ class EnvironmentVariables {
   @IsString()
   GEOAPIFY_API_KEY?: string;
 
+  @IsOptional()
+  @IsString()
+  DEEPGRAM_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  PAYSTACK_SECRET_KEY?: string;
+
   @IsInt()
   THROTTLE_TTL: number = 60;
 

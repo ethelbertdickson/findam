@@ -127,6 +127,19 @@ enum HouseholdCondition {
   FOR_PARTS
 }
 
+enum ProjectorProCreditEntryType {
+  PURCHASE
+  RESERVATION
+  CONSUMPTION
+  RELEASE
+}
+
+enum ProjectorProSessionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
 // ---------------------------------------------------------------------------
 // Users & Agents
 // ---------------------------------------------------------------------------
@@ -151,11 +164,68 @@ model User {
   passwordResetTokens PasswordResetToken[]
   adminAuditLogs      AdminAuditLog[]      @relation("AdminAuditActor")
   operationalTaskRuns OperationalTaskRun[] @relation("OperationalTaskActor")
+  projectorProWallet ProjectorProWallet?
+  projectorProPurchases ProjectorProPurchase[]
+  projectorProSessions ProjectorProSession[]
 
   createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
 
   @@index([role])
+}
+
+model ProjectorProWallet {
+  id             String                         @id @default(uuid())
+  userId         String                         @unique
+  user           User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceSeconds Int                            @default(0)
+  entries        ProjectorProCreditEntry[]
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+}
+
+model ProjectorProCreditEntry {
+  id          String                       @id @default(uuid())
+  walletId    String
+  wallet      ProjectorProWallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type        ProjectorProCreditEntryType
+  seconds     Int
+  reference   String?                      @unique
+  description String
+  metadata    Json?
+  createdAt   DateTime                     @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model ProjectorProPurchase {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageCode     String
+  amountKobo      Int
+  creditSeconds   Int
+  paystackRef     String   @unique
+  status          String
+  createdAt       DateTime @default(now())
+  fulfilledAt     DateTime?
+
+  @@index([userId, createdAt])
+}
+
+model ProjectorProSession {
+  id              String                      @id @default(uuid())
+  userId          String
+  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installationId  String
+  reservedSeconds Int
+  consumedSeconds Int                         @default(0)
+  status          ProjectorProSessionStatus   @default(ACTIVE)
+  createdAt       DateTime                    @default(now())
+  completedAt     DateTime?
+
+  @@index([userId, status])
+  @@index([installationId])
 }
 
 model RefreshToken {

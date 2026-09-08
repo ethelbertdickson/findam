@@ -16,6 +16,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { AdminModule } from './admin/admin.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { RequestMetricsInterceptor } from './observability/request-metrics.interceptor';
+import { ProjectorProModule } from './projectorpro/projectorpro.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { RequestMetricsInterceptor } from './observability/request-metrics.inter
     UploadsModule,
     ObservabilityModule,
     AdminModule,
+    ProjectorProModule,
   ],
   providers: [
     {
