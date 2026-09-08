@@ -28,7 +28,7 @@ export class ProjectorProController {
   @Get('credits/balance')
   @ApiBearerAuth()
   balance(@CurrentUser() user: JwtAccessPayload) {
-    return this.service.balance(user.sub);
+    return this.service.balance(user.sub, user.role === 'ADMIN');
   }
 
   @Post('credits/checkout')

@@ -30,9 +30,25 @@ export class ProjectorProService {
     }));
   }
 
-  async balance(userId: string) {
+  async balance(userId: string, isAdministrator = false) {
+    const latestPurchase = await this.prisma.projectorProPurchase.findFirst({
+      where: { userId, status: 'SUCCESS' },
+      orderBy: { fulfilledAt: 'desc' },
+      select: { fulfilledAt: true, packageCode: true },
+    });
+    if (isAdministrator) return {
+      unlimited: true, seconds: null, minutes: null,
+      lastPurchaseAt: latestPurchase?.fulfilledAt ?? null,
+      lastPackageCode: latestPurchase?.packageCode ?? null,
+    };
     const wallet = await this.prisma.projectorProWallet.findUnique({ where: { userId } });
-    return { seconds: wallet?.balanceSeconds ?? 0, minutes: Math.floor((wallet?.balanceSeconds ?? 0) / 60) };
+    return {
+      unlimited: false,
+      seconds: wallet?.balanceSeconds ?? 0,
+      minutes: Math.floor((wallet?.balanceSeconds ?? 0) / 60),
+      lastPurchaseAt: latestPurchase?.fulfilledAt ?? null,
+      lastPackageCode: latestPurchase?.packageCode ?? null,
+    };
   }
 
   async initializeCheckout(userId: string, packageCode: string) {
@@ -123,6 +139,23 @@ export class ProjectorProService {
     const purchase = await this.prisma.projectorProPurchase.findUnique({ where: { paystackRef: reference } });
     if (!purchase || purchase.status === 'SUCCESS') return { received: true };
     if (event.data.status !== 'success') return { received: true };
+
+    // Do not credit a wallet from the webhook body alone. Verify the
+    // transaction directly with Paystack and match it to our pending order.
+    const verification = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    const verified = (await verification.json()) as {
+      status?: boolean;
+      data?: { status?: string; reference?: string; amount?: number; currency?: string };
+    };
+    const verifiedData = verified.data;
+    if (!verification.ok || !verified.status
+      || verifiedData?.status !== 'success'
+      || verifiedData.reference !== purchase.paystackRef
+      || verifiedData.amount !== purchase.amountKobo
+      || verifiedData.currency !== 'NGN')
+      throw new ForbiddenException('Payment could not be verified.');
 
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.projectorProPurchase.updateMany({ where: { paystackRef: reference, status: 'PENDING' }, data: { status: 'SUCCESS', fulfilledAt: new Date() } });

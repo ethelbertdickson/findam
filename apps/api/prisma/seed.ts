@@ -4,6 +4,9 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The demo seed is disabled in production.');
+  }
   const passwordHash = await bcrypt.hash('FindamDemo123!', 12);
   const user = await prisma.user.upsert({ where: { email: 'demo@findam.app' }, update: {}, create: { email: 'demo@findam.app', passwordHash, firstName: 'Ada', lastName: 'Williams', phone: '+2348000000000', role: 'AGENT' } });
   const country = await prisma.country.upsert({ where: { code: 'NG' }, update: {}, create: { name: 'Nigeria', code: 'NG' } });

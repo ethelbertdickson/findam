@@ -1,4 +1,6 @@
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'node:path';
+import * as dotenv from 'dotenv';
 import { Module } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -19,11 +21,19 @@ import { RequestMetricsInterceptor } from './observability/request-metrics.inter
 import { ProjectorProModule } from './projectorpro/projectorpro.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 
+dotenv.config({ path: join(__dirname, '../.env.production') });
+dotenv.config({ path: join(__dirname, '../.env') });
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.production', '.env'],
+      envFilePath: [
+        join(__dirname, '../.env.production'),
+        join(__dirname, '../.env'),
+        '.env.production',
+        '.env',
+      ],
       load: [configuration],
       validate: validateEnv,
     }),

@@ -112,5 +112,16 @@ export function validateEnv(config: Record<string, unknown>) {
     throw new Error(`Environment validation failed: ${errors.toString()}`);
   }
 
+  if (validatedConfig.NODE_ENV === Environment.Production) {
+    const requiredProductionSecrets = [
+      ['DEEPGRAM_API_KEY', validatedConfig.DEEPGRAM_API_KEY],
+      ['PAYSTACK_SECRET_KEY', validatedConfig.PAYSTACK_SECRET_KEY],
+    ].filter(([, value]) => typeof value !== 'string' || value.trim().length === 0);
+    if (requiredProductionSecrets.length > 0)
+      throw new Error(`Production requires: ${requiredProductionSecrets.map(([name]) => name).join(', ')}`);
+    if (!validatedConfig.CORS_ORIGIN || validatedConfig.CORS_ORIGIN.trim() === '*')
+      throw new Error('Production requires CORS_ORIGIN to list approved origins, not *');
+  }
+
   return validatedConfig;
 }
