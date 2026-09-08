@@ -1,0 +1,14 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, #09111f 82%, transparent);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid #1a2a4033;
+}
+
+/* Sticky positioning cannot work inside an overflow-hidden ancestor. */
+.site-shell {
+  overflow-x: clip;
+  overflow-y: visible;
+}
