@@ -18,6 +18,7 @@ import { ProjectorProService } from './projectorpro.service';
 export class ProjectorProController {
   constructor(private readonly service: ProjectorProService) {}
 
+  @Public()
   @Get('credits/packages')
   @ApiOperation({ summary: 'List Projector Pro Deepgram credit packages' })
   packages() {
