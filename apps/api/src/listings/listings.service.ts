@@ -72,12 +72,13 @@ export class ListingsService {
             })),
           }
         : {}),
-      ...(query.propertyType || query.offerType || query.bedrooms !== undefined
+      ...(query.propertyType || query.offerType || query.bedrooms !== undefined || query.isCoRenting !== undefined
         ? {
             propertyDetails: {
               ...(query.propertyType && { propertyType: query.propertyType }),
               ...(query.offerType && { offerType: query.offerType }),
               ...(query.bedrooms !== undefined && { bedrooms: query.bedrooms }),
+              ...(query.isCoRenting !== undefined && { isCoRenting: query.isCoRenting }),
             },
           }
         : {}),

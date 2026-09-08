@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { RequestMetricsInterceptor } from './observability/request-metrics.interceptor';
 import { ProjectorProModule } from './projectorpro/projectorpro.module';
+import { ProfessionalsModule } from './professionals/professionals.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ProjectorProModule } from './projectorpro/projectorpro.module';
     ObservabilityModule,
     AdminModule,
     ProjectorProModule,
+    ProfessionalsModule,
   ],
   providers: [
     {

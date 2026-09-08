@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import "./sticky.css";
+import "./dynamic.css";
 
 const playStoreUrl = import.meta.env.VITE_PLAY_STORE_URL || "#download";
 const appStoreUrl = import.meta.env.VITE_APP_STORE_URL || "#download";
@@ -29,6 +30,12 @@ function DownloadButtons() {
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const heroMessages = ["closer than you think.", "made for your everyday.", "waiting to be found."];
+  useEffect(() => {
+    const timer = window.setInterval(() => setHeroIndex((index) => (index + 1) % heroMessages.length), 3600);
+    return () => window.clearInterval(timer);
+  }, []);
   return (
     <div className="site-shell">
       <header className="navbar">
@@ -47,6 +54,7 @@ function App() {
         </button>
         <nav className={menuOpen ? "nav-links open" : "nav-links"}>
           <a href="#features">Features</a>
+          <a href="#professionals">Professionals</a>
           <a href="#how-it-works">How it works</a>
           <a href="#download">Download</a>
           <a className="nav-cta" href="#download">
@@ -63,7 +71,7 @@ function App() {
             <h1>
               Your next find is
               <br />
-              <em>closer than you think.</em>
+              <em className="hero-message" key={heroIndex}>{heroMessages[heroIndex]}</em>
             </h1>
             <p className="hero-text">
               Findam brings the places, products, and people you are looking for
@@ -131,6 +139,16 @@ function App() {
                 Search through useful, local results without the noise. Find
                 homes, land, products, and services that fit your life.
               </p>
+            </article>
+            <article>
+              <div className="feature-icon green">⌂</div>
+              <h3>Find a co-tenant</h3>
+              <p>See rental homes that are open to co-renting and connect with people who fit the arrangement.</p>
+            </article>
+            <article id="professionals">
+              <div className="feature-icon blue">✦</div>
+              <h3>Meet the right professional</h3>
+              <p>Find trusted tradespeople and built-environment professionals for the work your place needs.</p>
             </article>
             <article>
               <div className="feature-icon purple">♡</div>

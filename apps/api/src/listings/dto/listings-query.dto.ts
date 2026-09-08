@@ -9,7 +9,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ListingType,
   PropertyType,
@@ -37,6 +37,10 @@ export class ListingsQueryDto {
   @IsOptional()
   @IsEnum(PropertyOfferType)
   offerType?: PropertyOfferType;
+  @ApiPropertyOptional({ description: 'Only properties accepting co-tenants' })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' ? true : value === 'false' ? false : value)
+  isCoRenting?: boolean;
   @ApiPropertyOptional({ minimum: 0, maximum: 6 })
   @IsOptional()
   @Type(() => Number)

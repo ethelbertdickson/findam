@@ -46,7 +46,7 @@ export class ProjectorProController {
     @CurrentUser() user: JwtAccessPayload,
     @Body('installationId') installationId: string,
   ) {
-    return this.service.issueDeepgramToken(user.sub, installationId);
+    return this.service.issueDeepgramToken(user.sub, installationId, user.role === 'ADMIN');
   }
 
   @Public()

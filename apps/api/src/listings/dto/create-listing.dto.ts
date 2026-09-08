@@ -115,6 +115,33 @@ export class PropertyDetailsDto {
   @IsNumber()
   @Min(0)
   otherCharges?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isCoRenting?: boolean;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  availableRooms?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  totalRooms?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  currentTenants?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  coRentingNote?: string;
 }
 
 export class LandDetailsDto {

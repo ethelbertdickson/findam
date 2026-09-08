@@ -185,6 +185,11 @@ export default function CreateListingScreen() {
   const [toilets, setToilets] = useState(1);
   const [parking, setParking] = useState(0);
   const [isFurnished, setIsFurnished] = useState(false);
+  const [isCoRenting, setIsCoRenting] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState(1);
+  const [totalRooms, setTotalRooms] = useState(1);
+  const [currentTenants, setCurrentTenants] = useState(0);
+  const [coRentingNote, setCoRentingNote] = useState("");
   const [agencyFeeType, setAgencyFeeType] = useState<AgencyFeeType>("FLAT");
   const [agencyFee, setAgencyFee] = useState("");
   const [landTenure, setLandTenure] = useState<LandTenure>("SALE");
@@ -242,6 +247,11 @@ export default function CreateListingScreen() {
       setToilets(listing.propertyDetails.toilets ?? 0);
       setParking(listing.propertyDetails.parking ?? 0);
       setIsFurnished(listing.propertyDetails.isFurnished);
+      setIsCoRenting(listing.propertyDetails.isCoRenting ?? false);
+      setAvailableRooms(listing.propertyDetails.availableRooms ?? 1);
+      setTotalRooms(listing.propertyDetails.totalRooms ?? 1);
+      setCurrentTenants(listing.propertyDetails.currentTenants ?? 0);
+      setCoRentingNote(listing.propertyDetails.coRentingNote ?? "");
       setAgencyFeeType(listing.propertyDetails.agencyFeeType || "FLAT");
       setAgencyFee(
         listing.propertyDetails.agencyFeeType === "PERCENTAGE"
@@ -295,6 +305,11 @@ export default function CreateListingScreen() {
                 toilets,
                 parking,
                 isFurnished,
+                isCoRenting: offerType === "RENT" && isCoRenting,
+                availableRooms: offerType === "RENT" && isCoRenting ? availableRooms : undefined,
+                totalRooms: offerType === "RENT" && isCoRenting ? totalRooms : undefined,
+                currentTenants: offerType === "RENT" && isCoRenting ? currentTenants : 0,
+                coRentingNote: offerType === "RENT" && isCoRenting ? coRentingNote.trim() || undefined : undefined,
                 agencyFeeType,
                 agencyFee:
                   agencyFeeType === "PERCENTAGE"
@@ -525,6 +540,34 @@ export default function CreateListingScreen() {
             value={isFurnished ? "yes" : "no"}
             onChange={(value) => setIsFurnished(value === "yes")}
           />
+          {offerType === "RENT" && (
+            <View style={styles.coRentSection}>
+              <ChoiceField
+                label="Looking for a co-tenant?"
+                options={[{ label: "No", value: "no" }, { label: "Yes", value: "yes" }]}
+                value={isCoRenting ? "yes" : "no"}
+                onChange={(value) => setIsCoRenting(value === "yes")}
+              />
+              {isCoRenting && (
+                <>
+                  <View style={styles.numberGrid}>
+                    <NumberField label="Rooms available" value={availableRooms} onChange={(value) => setAvailableRooms(Math.max(1, value))} />
+                    <NumberField label="Total rooms" value={totalRooms} onChange={(value) => setTotalRooms(Math.max(1, value))} />
+                    <NumberField label="Current tenants" value={currentTenants} onChange={setCurrentTenants} />
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.multiline]}
+                    placeholder="Tell interested co-tenants about the arrangement"
+                    placeholderTextColor={COLORS.muted}
+                    value={coRentingNote}
+                    onChangeText={setCoRentingNote}
+                    multiline
+                    maxLength={1000}
+                  />
+                </>
+              )}
+            </View>
+          )}
           <ChoiceField
             label="Agent fee"
             options={[
@@ -858,4 +901,5 @@ const styles = StyleSheet.create({
   },
   addPhotoText: { color: COLORS.text, fontSize: 12, fontWeight: "700" },
   note: { color: COLORS.muted, lineHeight: 19 },
+  coRentSection: { gap: 12 },
 });

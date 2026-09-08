@@ -55,6 +55,9 @@ export function ListingCard({
             <Text style={styles.offerText}>{offerLabel}</Text>
           </View>
         )}
+        {listing.propertyDetails?.isCoRenting && (
+          <View style={styles.coRentBadge}><Text style={styles.offerText}>Co-renting</Text></View>
+        )}
         {onToggleFavorite && (
           <Pressable
             style={styles.favoriteButton}
@@ -132,6 +135,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     backgroundColor: COLORS.primary,
   },
+  coRentBadge: { position: "absolute", left: 8, top: 8, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: "#168A5B" },
   offerText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
   body: {
     padding: 10,

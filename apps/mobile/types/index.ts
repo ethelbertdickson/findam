@@ -118,6 +118,11 @@ export interface Listing {
     serviceCharge: number;
     otherCharges: number;
     amenities: string[];
+    isCoRenting: boolean;
+    availableRooms?: number | null;
+    totalRooms?: number | null;
+    currentTenants: number;
+    coRentingNote?: string | null;
   } | null;
   landDetails?: {
     tenure: LandTenure;
@@ -194,6 +199,33 @@ export interface Agent {
     role?: Role;
     createdAt: string;
   };
+}
+
+export type ProfessionalCategory =
+  | "PLUMBER" | "ELECTRICIAN" | "TILER" | "BRICKLAYER" | "CARPENTER"
+  | "PAINTER" | "ENGINEER" | "ARCHITECT" | "SURVEYOR" | "QUANTITY_SURVEYOR"
+  | "INTERIOR_DESIGNER" | "ROOFER" | "HVAC_TECHNICIAN" | "PROPERTY_MANAGER"
+  | "SUPPLIER" | "OTHER";
+
+export interface ProfessionalProfile {
+  id: string;
+  userId: string;
+  displayName?: string | null;
+  category: ProfessionalCategory;
+  specialties: string[];
+  bio?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  website?: string | null;
+  portfolioUrls: string[];
+  serviceAreas: string[];
+  isVerified: boolean;
+  averageRating: number;
+  reviewCount: number;
+  user: { firstName: string; lastName: string; avatarUrl?: string | null; phone?: string | null };
+  country?: { id: string; name: string; code: string } | null;
+  state?: { id: string; name: string } | null;
+  city?: { id: string; name: string } | null;
 }
 
 export interface AgentRating {

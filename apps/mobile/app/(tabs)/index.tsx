@@ -106,6 +106,15 @@ export default function HomeScreen() {
             }
           />
           <ListingFeed type="HOUSEHOLD" horizontal />
+          <View style={styles.professionalCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.professionalTitle}>Need a trusted professional?</Text>
+              <Text style={styles.professionalNote}>Find plumbers, electricians, architects and more near you.</Text>
+            </View>
+            <Pressable style={styles.professionalButton} onPress={() => router.push("/professionals")}>
+              <Text style={styles.professionalButtonText}>Explore</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       )}
       <SearchOverlay
@@ -146,4 +155,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   searchResults: { flex: 1 },
+  professionalCard: { margin: 16, padding: 16, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, flexDirection: "row", alignItems: "center", gap: 12 },
+  professionalTitle: { color: COLORS.text, fontSize: 16, fontWeight: "800" },
+  professionalNote: { color: COLORS.muted, marginTop: 4, lineHeight: 18 },
+  professionalButton: { backgroundColor: COLORS.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9 },
+  professionalButtonText: { color: "#fff", fontWeight: "700" },
 });

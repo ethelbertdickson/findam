@@ -199,6 +199,12 @@ export default function ListingDetailScreen() {
               {property.toilets ?? 0} toilets ·{" "}
               {property.isFurnished ? "Furnished" : "Not furnished"}
             </Text>
+            {property.isCoRenting && (
+              <Text style={styles.coRentText}>
+                Co-renting available: {property.availableRooms ?? 1} room(s) open
+                {property.coRentingNote ? ` · ${property.coRentingNote}` : ""}
+              </Text>
+            )}
             <View style={styles.divider} />
             <Text style={styles.cardTitle}>Move-in cost</Text>
             <Text style={styles.bodyText}>
@@ -393,6 +399,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   bodyText: { color: COLORS.text },
+  coRentText: { color: COLORS.primary, fontWeight: "700", lineHeight: 20 },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 10 },
   total: { fontWeight: "800", color: COLORS.text, marginTop: 6, fontSize: 16 },
   agent: {

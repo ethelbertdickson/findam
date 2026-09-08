@@ -14,7 +14,7 @@ Production uses AlmaLinux, PostgreSQL, systemd, and Nginx. Node services run dir
 ## Environment files
 
 ```bash
-cd /srv/findam
+cd /var/www/findam
 cp apps/api/.env.production.example apps/api/.env.production
 cp apps/media/.env.production.example apps/media/.env.production
 cp apps/api-console/.env.production.example apps/api-console/.env.production
@@ -32,12 +32,12 @@ The console and web builds use relative URLs behind Nginx. Leave `VITE_API_URL` 
 
 ## Media session error
 
-The media admin guard verifies the `findam_admin_access` cookie with `process.env.JWT_ACCESS_SECRET`. If media starts without its app environment loaded, verification fails and the guard returns the generic `Administrator session is invalid or expired`. Media now validates `JWT_ACCESS_SECRET` and `MEDIA_DATABASE_URL` at startup. Run it with `WorkingDirectory=/srv/findam/apps/media` or use its production env explicitly. The expected secret name is the same on both services: `JWT_ACCESS_SECRET`.
+The media admin guard verifies the `findam_admin_access` cookie with `process.env.JWT_ACCESS_SECRET`. If media starts without its app environment loaded, verification fails and the guard returns the generic `Administrator session is invalid or expired`. Media now validates `JWT_ACCESS_SECRET` and `MEDIA_DATABASE_URL` at startup. Run it with `WorkingDirectory=/var/www/findam/apps/media` or use its production env explicitly. The expected secret name is the same on both services: `JWT_ACCESS_SECRET`.
 
 ## Install, migrate, and build
 
 ```bash
-cd /srv/findam
+cd /var/www/findam
 npm ci --prefix apps/api
 npm ci --prefix apps/media
 npm ci --prefix apps/api-console
@@ -59,12 +59,12 @@ The production media database needs an active project with slug `findam`. The de
 ## systemd
 
 ```bash
-sudo useradd --system --home /srv/findam --shell /sbin/nologin findam
+sudo useradd --system --home /var/www/findam --shell /sbin/nologin findam
 sudo mkdir -p /var/lib/findam/media
-sudo chown -R findam:findam /srv/findam /var/lib/findam/media
+sudo chown -R findam:findam /var/www/findam /var/lib/findam/media
 ```
 
-`/etc/systemd/system/findam-api.service`:
+`/etc/systemd/system/findam-api.service` (adjust the path only if you install elsewhere):
 
 ```ini
 [Unit]
@@ -73,9 +73,9 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=findam
-WorkingDirectory=/srv/findam/apps/api
-EnvironmentFile=/srv/findam/apps/api/.env.production
-ExecStart=/usr/bin/node /srv/findam/apps/api/dist/src/main.js
+WorkingDirectory=/var/www/findam/apps/api
+EnvironmentFile=/var/www/findam/apps/api/.env.production
+ExecStart=/usr/bin/node /var/www/findam/apps/api/dist/src/main.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
@@ -83,7 +83,7 @@ NoNewPrivileges=true
 WantedBy=multi-user.target
 ```
 
-Create `findam-media.service` with the same sections, changing `WorkingDirectory`, `EnvironmentFile`, and `ExecStart` to `apps/media` and `dist/main.js`.
+Create `findam-media.service` with the same sections, changing `WorkingDirectory`, `EnvironmentFile`, and `ExecStart` to `/var/www/findam/apps/media` and `/var/www/findam/apps/media/dist/main.js`.
 
 ```bash
 sudo systemctl daemon-reload
@@ -125,7 +125,7 @@ Install HTTPS certificates, redirect HTTP to HTTPS, and ensure DNS points all th
 
 ```bash
 curl -fsS https://api.grastadomham.com/api/v1/health
-curl -fsS http://127.0.0.1:3001/health
+curl -fsS http://127.0.0.1:3001/api/v1/health
 curl -I https://admin.grastadomham.com
 curl -I https://grastadomham.com
 ```
@@ -135,7 +135,7 @@ Log into the console, upload a small image in the `findam` project, confirm its 
 ## Subsequent deployments
 
 ```bash
-cd /srv/findam
+cd /var/www/findam
 git pull --ff-only origin main
 npm ci --prefix apps/api && npm ci --prefix apps/media
 npm ci --prefix apps/api-console && npm ci --prefix apps/web

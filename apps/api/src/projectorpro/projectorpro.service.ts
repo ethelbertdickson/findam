@@ -69,17 +69,19 @@ export class ProjectorProService {
     return { authorizationUrl: result.data.authorization_url, reference };
   }
 
-  async issueDeepgramToken(userId: string, installationId: string) {
+  async issueDeepgramToken(userId: string, installationId: string, isAdministrator = false) {
     if (!installationId?.trim()) throw new BadRequestException('installationId is required.');
-    const wallet = await this.prisma.projectorProWallet.findUnique({ where: { userId } });
     const reserveSeconds = 60;
-    if (!wallet || wallet.balanceSeconds < reserveSeconds)
-      throw new ForbiddenException('Purchase Deepgram credits to start transcription.');
+    if (!isAdministrator) {
+      const wallet = await this.prisma.projectorProWallet.findUnique({ where: { userId } });
+      if (!wallet || wallet.balanceSeconds < reserveSeconds)
+        throw new ForbiddenException('Purchase Deepgram credits to start transcription.');
+    }
 
     const deepgramKey = process.env.DEEPGRAM_API_KEY;
     if (!deepgramKey) throw new InternalServerErrorException('Deepgram service is not configured.');
 
-    const session = await this.prisma.$transaction(async (tx) => {
+    const session = isAdministrator ? null : await this.prisma.$transaction(async (tx) => {
       const current = await tx.projectorProWallet.updateMany({
         where: { userId, balanceSeconds: { gte: reserveSeconds } },
         data: { balanceSeconds: { decrement: reserveSeconds } },
@@ -100,10 +102,10 @@ export class ProjectorProService {
     });
     const result = (await response.json()) as { access_token?: string; expires_in?: number };
     if (!response.ok || !result.access_token) {
-      await this.releaseSession(session.id);
+      if (session) await this.releaseSession(session.id);
       throw new BadRequestException('Deepgram token could not be issued.');
     }
-    return { token: result.access_token, sessionId: session.id, expiresIn: result.expires_in ?? 3600 };
+    return { token: result.access_token, sessionId: session?.id ?? null, expiresIn: result.expires_in ?? 3600 };
   }
 
   async processPaystackWebhook(signature: string, rawBody: Buffer | undefined, body: unknown) {

@@ -31,6 +31,7 @@ export interface ListingFilters {
   latitude?: number;
   longitude?: number;
   radiusKm?: number;
+  isCoRenting?: boolean;
 }
 
 export async function fetchListings(filters: ListingFilters = {}) {

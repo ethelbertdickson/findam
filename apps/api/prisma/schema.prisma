@@ -28,6 +28,25 @@ enum ListingType {
   HOUSEHOLD
 }
 
+enum ProfessionalCategory {
+  PLUMBER
+  ELECTRICIAN
+  TILER
+  BRICKLAYER
+  CARPENTER
+  PAINTER
+  ENGINEER
+  ARCHITECT
+  SURVEYOR
+  QUANTITY_SURVEYOR
+  INTERIOR_DESIGNER
+  ROOFER
+  HVAC_TECHNICIAN
+  PROPERTY_MANAGER
+  SUPPLIER
+  OTHER
+}
+
 enum ListingStatus {
   DRAFT
   PENDING
@@ -156,17 +175,18 @@ model User {
   role         Role    @default(USER)
   isActive     Boolean @default(true)
 
-  agentProfile        AgentProfile?
-  listings            Listing[]
-  favorites           Favorite[]
-  ratingsGiven        AgentRating[]        @relation("RatingsAuthored")
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  adminAuditLogs      AdminAuditLog[]      @relation("AdminAuditActor")
-  operationalTaskRuns OperationalTaskRun[] @relation("OperationalTaskActor")
-  projectorProWallet ProjectorProWallet?
+  agentProfile          AgentProfile?
+  professionalProfile   ProfessionalProfile?
+  listings              Listing[]
+  favorites             Favorite[]
+  ratingsGiven          AgentRating[]          @relation("RatingsAuthored")
+  refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
+  adminAuditLogs        AdminAuditLog[]        @relation("AdminAuditActor")
+  operationalTaskRuns   OperationalTaskRun[]   @relation("OperationalTaskActor")
+  projectorProWallet    ProjectorProWallet?
   projectorProPurchases ProjectorProPurchase[]
-  projectorProSessions ProjectorProSession[]
+  projectorProSessions  ProjectorProSession[]
 
   createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
@@ -175,53 +195,53 @@ model User {
 }
 
 model ProjectorProWallet {
-  id             String                         @id @default(uuid())
-  userId         String                         @unique
-  user           User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balanceSeconds Int                            @default(0)
+  id             String                    @id @default(uuid())
+  userId         String                    @unique
+  user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceSeconds Int                       @default(0)
   entries        ProjectorProCreditEntry[]
-  createdAt      DateTime                       @default(now())
-  updatedAt      DateTime                       @updatedAt
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
 }
 
 model ProjectorProCreditEntry {
-  id          String                       @id @default(uuid())
+  id          String                      @id @default(uuid())
   walletId    String
-  wallet      ProjectorProWallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  wallet      ProjectorProWallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
   type        ProjectorProCreditEntryType
   seconds     Int
-  reference   String?                      @unique
+  reference   String?                     @unique
   description String
   metadata    Json?
-  createdAt   DateTime                     @default(now())
+  createdAt   DateTime                    @default(now())
 
   @@index([walletId, createdAt])
 }
 
 model ProjectorProPurchase {
-  id              String   @id @default(uuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  packageCode     String
-  amountKobo      Int
-  creditSeconds   Int
-  paystackRef     String   @unique
-  status          String
-  createdAt       DateTime @default(now())
-  fulfilledAt     DateTime?
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageCode   String
+  amountKobo    Int
+  creditSeconds Int
+  paystackRef   String    @unique
+  status        String
+  createdAt     DateTime  @default(now())
+  fulfilledAt   DateTime?
 
   @@index([userId, createdAt])
 }
 
 model ProjectorProSession {
-  id              String                      @id @default(uuid())
+  id              String                    @id @default(uuid())
   userId          String
-  user            User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   installationId  String
   reservedSeconds Int
-  consumedSeconds Int                         @default(0)
-  status          ProjectorProSessionStatus   @default(ACTIVE)
-  createdAt       DateTime                    @default(now())
+  consumedSeconds Int                       @default(0)
+  status          ProjectorProSessionStatus @default(ACTIVE)
+  createdAt       DateTime                  @default(now())
   completedAt     DateTime?
 
   @@index([userId, status])
@@ -328,6 +348,36 @@ model AgentRating {
   @@index([agentId])
 }
 
+model ProfessionalProfile {
+  id            String               @id @default(uuid())
+  userId        String               @unique
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName   String?
+  category      ProfessionalCategory
+  specialties   String[]             @default([])
+  bio           String?
+  phone         String?
+  whatsapp      String?
+  website       String?
+  portfolioUrls String[]             @default([])
+  countryId     String?
+  country       Country?             @relation(fields: [countryId], references: [id])
+  stateId       String?
+  state         State?               @relation(fields: [stateId], references: [id])
+  cityId        String?
+  city          City?                @relation(fields: [cityId], references: [id])
+  serviceAreas  String[]             @default([])
+  isVerified    Boolean              @default(false)
+  averageRating Float                @default(0)
+  reviewCount   Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([category])
+  @@index([countryId, stateId, cityId])
+  @@index([isVerified])
+}
+
 // ---------------------------------------------------------------------------
 // Location hierarchy
 // ---------------------------------------------------------------------------
@@ -337,9 +387,10 @@ model Country {
   name String @unique
   code String @unique
 
-  states   State[]
-  listings Listing[]
-  agents   AgentProfile[]
+  states        State[]
+  listings      Listing[]
+  agents        AgentProfile[]
+  professionals ProfessionalProfile[]
 }
 
 model State {
@@ -348,9 +399,10 @@ model State {
   countryId String
   country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
 
-  cities   City[]
-  listings Listing[]
-  agents   AgentProfile[]
+  cities        City[]
+  listings      Listing[]
+  agents        AgentProfile[]
+  professionals ProfessionalProfile[]
 
   @@unique([countryId, name])
 }
@@ -361,8 +413,9 @@ model City {
   stateId String
   state   State  @relation(fields: [stateId], references: [id], onDelete: Cascade)
 
-  areas    Area[]
-  listings Listing[]
+  areas         Area[]
+  listings      Listing[]
+  professionals ProfessionalProfile[]
 
   @@unique([stateId, name])
 }
@@ -449,16 +502,21 @@ model PropertyDetails {
   listingId String  @unique
   listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  propertyType PropertyType
-  offerType    PropertyOfferType @default(RENT)
-  rentPeriod   RentPeriod
-  bedrooms     Int?
-  bathrooms    Int?
-  toilets      Int?
-  parking      Int?
-  isFurnished  Boolean           @default(false)
-  amenities    String[]          @default([])
-  isAvailable  Boolean           @default(true)
+  propertyType   PropertyType
+  offerType      PropertyOfferType @default(RENT)
+  rentPeriod     RentPeriod
+  bedrooms       Int?
+  bathrooms      Int?
+  toilets        Int?
+  parking        Int?
+  isFurnished    Boolean           @default(false)
+  amenities      String[]          @default([])
+  isAvailable    Boolean           @default(true)
+  isCoRenting    Boolean           @default(false)
+  availableRooms Int?
+  totalRooms     Int?
+  currentTenants Int               @default(0)
+  coRentingNote  String?
 
   // Move-in charges are stored individually; totals are derived, never stored.
   securityDeposit Decimal       @default(0) @db.Decimal(14, 2)
