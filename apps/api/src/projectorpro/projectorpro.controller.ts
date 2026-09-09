@@ -45,8 +45,9 @@ export class ProjectorProController {
   token(
     @CurrentUser() user: JwtAccessPayload,
     @Body('installationId') installationId: string,
+    @Body('deviceFingerprint') deviceFingerprint: string,
   ) {
-    return this.service.issueDeepgramToken(user.sub, installationId, user.role === 'ADMIN');
+    return this.service.issueDeepgramToken(user.sub, installationId, deviceFingerprint, user.role === 'ADMIN');
   }
 
   @Public()

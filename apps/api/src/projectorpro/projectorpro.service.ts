@@ -85,12 +85,13 @@ export class ProjectorProService {
     return { authorizationUrl: result.data.authorization_url, reference };
   }
 
-  async issueDeepgramToken(userId: string, installationId: string, isAdministrator = false) {
+  async issueDeepgramToken(userId: string, installationId: string, deviceFingerprint: string, isAdministrator = false) {
     if (!installationId?.trim()) throw new BadRequestException('installationId is required.');
+    if (!deviceFingerprint?.trim()) throw new BadRequestException('deviceFingerprint is required.');
     const reserveSeconds = 60;
     if (!isAdministrator) {
       const wallet = await this.prisma.projectorProWallet.findUnique({ where: { userId } });
-      if (!wallet || wallet.balanceSeconds < reserveSeconds)
+      if (wallet?.trialGrantedAt && wallet.balanceSeconds < reserveSeconds)
         throw new ForbiddenException('Purchase Deepgram credits to start transcription.');
     }
 
@@ -98,15 +99,51 @@ export class ProjectorProService {
     if (!deepgramKey) throw new InternalServerErrorException('Deepgram service is not configured.');
 
     const session = isAdministrator ? null : await this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      let reservationSeconds = reserveSeconds;
+      const walletBeforeTrial = await tx.projectorProWallet.upsert({
+        where: { userId },
+        create: { userId, balanceSeconds: 0 },
+        update: {},
+      });
+      const deviceAlreadyUsed = await tx.projectorProTrialDevice.findUnique({
+        where: { deviceId: deviceFingerprint.trim() },
+        select: { id: true },
+      });
+      if (!walletBeforeTrial.trialGrantedAt && !deviceAlreadyUsed) {
+        const trial = await tx.projectorProWallet.updateMany({
+          where: { id: walletBeforeTrial.id, trialGrantedAt: null },
+          data: { balanceSeconds: { increment: 3600 }, trialGrantedAt: now },
+        });
+        if (trial.count === 1) {
+          reservationSeconds = 3600;
+          await tx.projectorProTrialDevice.create({
+            data: { deviceId: deviceFingerprint.trim(), userId },
+          });
+          await tx.projectorProCreditEntry.create({
+            data: {
+              walletId: walletBeforeTrial.id, type: 'PURCHASE', seconds: 3600,
+              reference: `trial:${userId}`, description: 'One-time service trial',
+            },
+          });
+        }
+      }
+      const activeCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const activeSession = await tx.projectorProSession.findFirst({
+        where: { userId, status: 'ACTIVE', createdAt: { gte: activeCutoff } },
+        select: { id: true },
+      });
+      if (activeSession)
+        throw new ForbiddenException('A transcription session is already active for this account.');
       const current = await tx.projectorProWallet.updateMany({
-        where: { userId, balanceSeconds: { gte: reserveSeconds } },
-        data: { balanceSeconds: { decrement: reserveSeconds } },
+        where: { userId, balanceSeconds: { gte: reservationSeconds } },
+        data: { balanceSeconds: { decrement: reservationSeconds } },
       });
       if (current.count !== 1) throw new ForbiddenException('Purchase Deepgram credits to start transcription.');
       const updatedWallet = await tx.projectorProWallet.findUniqueOrThrow({ where: { userId } });
-      const created = await tx.projectorProSession.create({ data: { userId, installationId: installationId.trim(), reservedSeconds: reserveSeconds } });
+      const created = await tx.projectorProSession.create({ data: { userId, installationId: installationId.trim(), reservedSeconds: reservationSeconds } });
       await tx.projectorProCreditEntry.create({
-        data: { walletId: updatedWallet.id, type: 'RESERVATION', seconds: -reserveSeconds, reference: `session:${created.id}`, description: 'Deepgram session reservation' },
+        data: { walletId: updatedWallet.id, type: 'RESERVATION', seconds: -reservationSeconds, reference: `session:${created.id}`, description: 'Service session reservation' },
       });
       return created;
     });

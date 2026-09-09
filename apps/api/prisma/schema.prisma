@@ -187,6 +187,7 @@ model User {
   projectorProWallet    ProjectorProWallet?
   projectorProPurchases ProjectorProPurchase[]
   projectorProSessions  ProjectorProSession[]
+  projectorProTrialDevices ProjectorProTrialDevice[]
 
   createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
@@ -199,9 +200,20 @@ model ProjectorProWallet {
   userId         String                    @unique
   user           User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   balanceSeconds Int                       @default(0)
+  trialGrantedAt DateTime?
   entries        ProjectorProCreditEntry[]
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt
+}
+
+model ProjectorProTrialDevice {
+  id        String   @id @default(uuid())
+  deviceId  String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model ProjectorProCreditEntry {
