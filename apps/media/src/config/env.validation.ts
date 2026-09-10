@@ -1,4 +1,4 @@
-import { plainToInstance } from "class-transformer";
+import { plainToInstance, Type } from "class-transformer";
 import { IsEnum, IsInt, IsString, Max, Min, validateSync } from "class-validator";
 
 enum Environment {
@@ -9,7 +9,7 @@ enum Environment {
 
 class MediaEnvironment {
   @IsEnum(Environment) NODE_ENV: Environment = Environment.Development;
-  @IsInt() @Min(0) @Max(65535) MEDIA_PORT = 3001;
+  @Type(() => Number) @IsInt() @Min(0) @Max(65535) MEDIA_PORT = 3001;
   @IsString() API_PREFIX = "api/v1";
   @IsString() CORS_ORIGIN = "http://localhost:5173";
   @IsString() MEDIA_DATABASE_URL!: string;

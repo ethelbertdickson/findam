@@ -1,4 +1,3 @@
-import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,7 +30,6 @@ const PROPERTY_TYPES: { label: string; value?: PropertyType }[] = [
 ];
 
 export default function PropertiesScreen() {
-  const params = useLocalSearchParams<{ search?: string }>();
   const [selected, setSelected] = useState<PropertyType | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<ListingFilters | null>(null);
@@ -44,10 +42,6 @@ export default function PropertiesScreen() {
         : current,
     );
   }, [locationSearchActive]);
-  useEffect(() => {
-    if (params.search) setSearchOpen(true);
-  }, [params.search]);
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <MarketplaceTabHeader

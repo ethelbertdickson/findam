@@ -157,7 +157,7 @@ function NumberField({
 }
 
 export default function CreateListingScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, type: initialType } = useLocalSearchParams<{ id?: string; type?: ListingType }>();
   const listingId = Array.isArray(id) ? id[0] : id;
   const isEditing = Boolean(listingId);
   const navigation = useNavigation();
@@ -202,6 +202,10 @@ export default function CreateListingScreen() {
   const [householdCondition, setHouseholdCondition] =
     useState<HouseholdCondition>("GOOD");
   const [customLocationText, setCustomLocationText] = useState("");
+
+  useEffect(() => {
+    if (!isEditing && initialType && TYPES.some((item) => item.value === initialType)) setType(initialType);
+  }, [initialType, isEditing]);
 
   useEffect(() => {
     navigation.setOptions({

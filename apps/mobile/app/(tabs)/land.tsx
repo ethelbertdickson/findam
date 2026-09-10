@@ -1,4 +1,3 @@
-import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,7 +16,6 @@ const TENURES: { label: string; value?: LandTenure }[] = [
 ];
 
 export default function LandScreen() {
-  const params = useLocalSearchParams<{ search?: string }>();
   const [selected, setSelected] = useState<LandTenure | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<ListingFilters | null>(null);
@@ -30,10 +28,6 @@ export default function LandScreen() {
         : current,
     );
   }, [locationSearchActive]);
-  useEffect(() => {
-    if (params.search) setSearchOpen(true);
-  }, [params.search]);
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <MarketplaceTabHeader title="Land" onSearch={() => setSearchOpen(true)} />

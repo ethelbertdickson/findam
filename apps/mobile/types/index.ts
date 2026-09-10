@@ -222,7 +222,7 @@ export interface ProfessionalProfile {
   isVerified: boolean;
   averageRating: number;
   reviewCount: number;
-  user: { firstName: string; lastName: string; avatarUrl?: string | null; phone?: string | null };
+  user?: { firstName: string; lastName: string; avatarUrl?: string | null; phone?: string | null } | null;
   country?: { id: string; name: string; code: string } | null;
   state?: { id: string; name: string } | null;
   city?: { id: string; name: string } | null;

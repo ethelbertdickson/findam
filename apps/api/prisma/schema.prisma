@@ -47,6 +47,29 @@ enum ProfessionalCategory {
   OTHER
 }
 
+enum ServiceListingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum UserRequestType {
+  PROPERTY
+  CO_RENTING
+  LAND
+  HOUSEHOLD
+  PROFESSIONAL
+  SERVICE
+}
+
+enum UserRequestStatus {
+  OPEN
+  MATCHED
+  CLOSED
+  EXPIRED
+}
+
 enum ListingStatus {
   DRAFT
   PENDING
@@ -175,18 +198,21 @@ model User {
   role         Role    @default(USER)
   isActive     Boolean @default(true)
 
-  agentProfile          AgentProfile?
-  professionalProfile   ProfessionalProfile?
-  listings              Listing[]
-  favorites             Favorite[]
-  ratingsGiven          AgentRating[]          @relation("RatingsAuthored")
-  refreshTokens         RefreshToken[]
-  passwordResetTokens   PasswordResetToken[]
-  adminAuditLogs        AdminAuditLog[]        @relation("AdminAuditActor")
-  operationalTaskRuns   OperationalTaskRun[]   @relation("OperationalTaskActor")
-  projectorProWallet    ProjectorProWallet?
-  projectorProPurchases ProjectorProPurchase[]
-  projectorProSessions  ProjectorProSession[]
+  agentProfile             AgentProfile?
+  professionalProfile      ProfessionalProfile?      @relation("ProfessionalOwner")
+  managedProfessionals     ProfessionalProfile[]     @relation("ProfessionalManager")
+  requests                 UserRequest[]
+  serviceListingsCreated   ServiceListing[]          @relation("ServiceListingCreator")
+  listings                 Listing[]
+  favorites                Favorite[]
+  ratingsGiven             AgentRating[]             @relation("RatingsAuthored")
+  refreshTokens            RefreshToken[]
+  passwordResetTokens      PasswordResetToken[]
+  adminAuditLogs           AdminAuditLog[]           @relation("AdminAuditActor")
+  operationalTaskRuns      OperationalTaskRun[]      @relation("OperationalTaskActor")
+  projectorProWallet       ProjectorProWallet?
+  projectorProPurchases    ProjectorProPurchase[]
+  projectorProSessions     ProjectorProSession[]
   projectorProTrialDevices ProjectorProTrialDevice[]
 
   createdAt DateTime @default(now()) @updatedAt
@@ -285,6 +311,20 @@ model PasswordResetToken {
   @@index([expiresAt])
 }
 
+model PendingRegistration {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  codeHash     String
+  expiresAt    DateTime
+  attempts     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model AdminAuditLog {
   id         String           @id @default(uuid())
   action     AdminAuditAction
@@ -362,8 +402,10 @@ model AgentRating {
 
 model ProfessionalProfile {
   id            String               @id @default(uuid())
-  userId        String               @unique
-  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?              @unique
+  user          User?                @relation("ProfessionalOwner", fields: [userId], references: [id], onDelete: Cascade)
+  managedById   String?
+  managedBy     User?                @relation("ProfessionalManager", fields: [managedById], references: [id], onDelete: SetNull)
   displayName   String?
   category      ProfessionalCategory
   specialties   String[]             @default([])
@@ -379,6 +421,7 @@ model ProfessionalProfile {
   cityId        String?
   city          City?                @relation(fields: [cityId], references: [id])
   serviceAreas  String[]             @default([])
+  services      ServiceListing[]
   isVerified    Boolean              @default(false)
   averageRating Float                @default(0)
   reviewCount   Int                  @default(0)
@@ -388,6 +431,55 @@ model ProfessionalProfile {
   @@index([category])
   @@index([countryId, stateId, cityId])
   @@index([isVerified])
+  @@index([managedById])
+}
+
+model ServiceListing {
+  id           String               @id @default(uuid())
+  providerId   String
+  provider     ProfessionalProfile  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User                 @relation("ServiceListingCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     ProfessionalCategory
+  serviceAreas String[]             @default([])
+  priceFrom    Decimal?             @db.Decimal(14, 2)
+  priceTo      Decimal?             @db.Decimal(14, 2)
+  status       ServiceListingStatus @default(ACTIVE)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([category, status])
+  @@index([providerId])
+}
+
+model UserRequest {
+  id              String                @id @default(uuid())
+  createdById     String
+  createdBy       User                  @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  type            UserRequestType
+  title           String
+  description     String
+  countryId       String?
+  country         Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  stateId         String?
+  state           State?                @relation(fields: [stateId], references: [id], onDelete: SetNull)
+  cityId          String?
+  city            City?                 @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  budgetMin       Decimal?              @db.Decimal(14, 2)
+  budgetMax       Decimal?              @db.Decimal(14, 2)
+  bedrooms        Int?
+  serviceCategory ProfessionalCategory?
+  contactMode     String                @default("MANAGED")
+  status          UserRequestStatus     @default(OPEN)
+  expiresAt       DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([type, status])
+  @@index([serviceCategory, status])
+  @@index([countryId, stateId, cityId])
 }
 
 // ---------------------------------------------------------------------------
@@ -403,6 +495,7 @@ model Country {
   listings      Listing[]
   agents        AgentProfile[]
   professionals ProfessionalProfile[]
+  requests      UserRequest[]
 }
 
 model State {
@@ -415,6 +508,7 @@ model State {
   listings      Listing[]
   agents        AgentProfile[]
   professionals ProfessionalProfile[]
+  requests      UserRequest[]
 
   @@unique([countryId, name])
 }
@@ -428,6 +522,7 @@ model City {
   areas         Area[]
   listings      Listing[]
   professionals ProfessionalProfile[]
+  requests      UserRequest[]
 
   @@unique([stateId, name])
 }

@@ -18,3 +18,13 @@ export async function fetchProfessional(id: string) {
   const { data } = await apiClient.get<ProfessionalProfile>(`/professionals/${id}`);
   return data;
 }
+
+export async function createProfessional(input: Record<string, unknown>) {
+  const { data } = await apiClient.post<ProfessionalProfile>('/professionals/me', input);
+  return data;
+}
+
+export async function createManagedProfessional(input: Record<string, unknown>) {
+  const { data } = await apiClient.post<ProfessionalProfile>('/professionals/managed', input);
+  return data;
+}

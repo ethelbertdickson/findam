@@ -1,4 +1,3 @@
-import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,7 +24,6 @@ const CATEGORIES: { label: string; value?: HouseholdCategory }[] = [
 ];
 
 export default function HouseholdScreen() {
-  const params = useLocalSearchParams<{ search?: string }>();
   const [selected, setSelected] = useState<HouseholdCategory | undefined>();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<ListingFilters | null>(null);
@@ -38,10 +36,6 @@ export default function HouseholdScreen() {
         : current,
     );
   }, [locationSearchActive]);
-  useEffect(() => {
-    if (params.search) setSearchOpen(true);
-  }, [params.search]);
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <MarketplaceTabHeader

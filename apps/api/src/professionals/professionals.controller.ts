@@ -14,5 +14,6 @@ export class ProfessionalsController {
   @Public() @Get() findAll(@Query() query: ProfessionalsQueryDto) { return this.professionals.findAll(query); }
   @Get('me/profile') me(@CurrentUser() user: JwtAccessPayload) { return this.professionals.findByUserId(user.sub); }
   @Post('me') save(@CurrentUser() user: JwtAccessPayload, @Body() dto: ProfessionalProfileDto) { return this.professionals.upsert(user.sub, dto); }
+  @Post('managed') managed(@CurrentUser() user: JwtAccessPayload, @Body() dto: ProfessionalProfileDto) { return this.professionals.createManaged(user.sub, dto); }
   @Public() @Get(':id') findOne(@Param('id') id: string) { return this.professionals.findOne(id); }
 }

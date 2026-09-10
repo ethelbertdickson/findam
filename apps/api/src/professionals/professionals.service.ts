@@ -9,6 +9,7 @@ const include = {
   country: { select: { id: true, name: true, code: true } },
   state: { select: { id: true, name: true } },
   city: { select: { id: true, name: true } },
+  services: { where: { status: 'ACTIVE' as const }, orderBy: { createdAt: 'desc' as const } },
 } satisfies Prisma.ProfessionalProfileInclude;
 
 @Injectable()
@@ -59,5 +60,27 @@ export class ProfessionalsService {
       serviceAreas: dto.serviceAreas ?? [],
     };
     return this.prisma.professionalProfile.upsert({ where: { userId }, create: { userId, ...data }, update: data, include });
+  }
+
+  createManaged(managerId: string, dto: ProfessionalProfileDto) {
+    const data = this.profileData(dto);
+    return this.prisma.professionalProfile.create({ data: { managedById: managerId, ...data }, include });
+  }
+
+  private profileData(dto: ProfessionalProfileDto) {
+    return {
+      category: dto.category,
+      displayName: dto.displayName?.trim() || null,
+      bio: dto.bio?.trim() || null,
+      specialties: dto.specialties ?? [],
+      phone: dto.phone?.trim() || null,
+      whatsapp: dto.whatsapp?.trim() || null,
+      website: dto.website || null,
+      portfolioUrls: dto.portfolioUrls ?? [],
+      countryId: dto.countryId || null,
+      stateId: dto.stateId || null,
+      cityId: dto.cityId || null,
+      serviceAreas: dto.serviceAreas ?? [],
+    };
   }
 }

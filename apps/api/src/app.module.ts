@@ -20,6 +20,8 @@ import { ObservabilityModule } from './observability/observability.module';
 import { RequestMetricsInterceptor } from './observability/request-metrics.interceptor';
 import { ProjectorProModule } from './projectorpro/projectorpro.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
+import { ServicesModule } from './services/services.module';
+import { RequestsModule } from './requests/requests.module';
 
 dotenv.config({ path: join(__dirname, '../.env.production') });
 dotenv.config({ path: join(__dirname, '../.env') });
@@ -55,6 +57,8 @@ dotenv.config({ path: join(__dirname, '../.env') });
     AdminModule,
     ProjectorProModule,
     ProfessionalsModule,
+    ServicesModule,
+    RequestsModule,
   ],
   providers: [
     {

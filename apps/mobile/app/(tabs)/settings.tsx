@@ -67,7 +67,7 @@ export default function SettingsScreen() {
           <Pressable
             style={styles.createButton}
             onPress={() =>
-              router.push(user?.role === "AGENT" ? "/create" : "/agent-profile")
+              router.push(user?.role === "AGENT" ? "/create/options" : "/agent-profile")
             }
           >
             <Ionicons
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
             />
             <Text style={styles.createButtonText}>
               {user?.role === "AGENT"
-                ? "Create a listing"
+                ? "Create"
                 : "Become an agent to publish"}
             </Text>
           </Pressable>
