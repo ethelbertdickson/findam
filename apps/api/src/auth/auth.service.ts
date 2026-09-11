@@ -58,10 +58,44 @@ export class AuthService {
       create: { email: normalizedEmail, passwordHash, firstName: 'Projector', lastName: 'User', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(Date.now() + 15 * 60_000) },
       update: { passwordHash, codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(Date.now() + 15 * 60_000), attempts: 0 },
     });
+    const verificationEmailHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify your Projector Pro account</title>
+  </head>
+  <body style="margin:0;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#173047;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your Projector Pro verification code is ${code}.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef3f7;padding:32px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #d8e2ea;border-radius:16px;overflow:hidden;">
+          <tr><td style="background:#0b1f33;padding:28px 32px;">
+            <div style="font-size:22px;font-weight:700;letter-spacing:.2px;color:#ffffff;">PROJECTOR PRO</div>
+            <div style="font-size:13px;color:#9fd8c1;margin-top:6px;">Simple, confident presentation</div>
+          </td></tr>
+          <tr><td style="padding:36px 32px 28px;">
+            <div style="font-size:27px;line-height:1.2;font-weight:700;color:#102b43;">Verify your email</div>
+            <p style="font-size:16px;line-height:1.6;color:#526b7d;margin:16px 0 24px;">Use the verification code below to finish creating your Projector Pro account.</p>
+            <div style="background:#f1f7f5;border:1px solid #b9dfcc;border-radius:12px;padding:22px;text-align:center;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.6px;color:#4c7664;text-transform:uppercase;">Verification code</div>
+              <div style="font-size:36px;line-height:1.2;font-weight:700;letter-spacing:8px;color:#176344;margin:12px 0 2px 8px;">${code}</div>
+            </div>
+            <p style="font-size:14px;line-height:1.6;color:#526b7d;margin:24px 0 0;">This code expires in <strong style="color:#173047;">15 minutes</strong>. If you did not request this email, you can safely ignore it.</p>
+          </td></tr>
+          <tr><td style="border-top:1px solid #e4ebf0;padding:20px 32px;background:#f8fafb;">
+            <div style="font-size:12px;line-height:1.6;color:#718695;">For your security, never share this code with anyone. This message was sent automatically by Projector Pro.</div>
+          </td></tr>
+        </table>
+        <div style="font-size:12px;color:#8295a2;margin-top:18px;">© Projector Pro</div>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${mailKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: mailFrom, to: [normalizedEmail], subject: 'Your Projector Pro verification code', html: `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in 15 minutes.</p>` }),
+      body: JSON.stringify({ from: mailFrom, to: [normalizedEmail], subject: 'Verify your Projector Pro account', html: verificationEmailHtml }),
     });
     if (!response.ok) {
       await this.prisma.pendingRegistration.deleteMany({ where: { email: normalizedEmail } });
