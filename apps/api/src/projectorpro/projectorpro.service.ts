@@ -46,6 +46,8 @@ export class ProjectorProService {
       unlimited: false,
       seconds: wallet?.balanceSeconds ?? 0,
       minutes: Math.floor((wallet?.balanceSeconds ?? 0) / 60),
+      trialGranted: Boolean(wallet?.trialGrantedAt),
+      trialStartedAt: wallet?.trialGrantedAt ?? null,
       lastPurchaseAt: latestPurchase?.fulfilledAt ?? null,
       lastPackageCode: latestPurchase?.packageCode ?? null,
     };
@@ -116,7 +118,6 @@ export class ProjectorProService {
           data: { balanceSeconds: { increment: 3600 }, trialGrantedAt: now },
         });
         if (trial.count === 1) {
-          reservationSeconds = 3600;
           await tx.projectorProTrialDevice.create({
             data: { deviceId: deviceFingerprint.trim(), userId },
           });
@@ -159,6 +160,15 @@ export class ProjectorProService {
       throw new BadRequestException('Deepgram token could not be issued.');
     }
     return { token: result.access_token, sessionId: session?.id ?? null, expiresIn: result.expires_in ?? 3600 };
+  }
+
+  async completeSession(userId: string, sessionId: string) {
+    if (!sessionId?.trim()) return { completed: false };
+    const result = await this.prisma.projectorProSession.updateMany({
+      where: { id: sessionId.trim(), userId, status: 'ACTIVE' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+    return { completed: result.count === 1 };
   }
 
   async processPaystackWebhook(signature: string, rawBody: Buffer | undefined, body: unknown) {

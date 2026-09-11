@@ -24,6 +24,7 @@ import {
   PasswordResetRequestDto,
 } from './dto/password-reset.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import { RegistrationCodeConfirmDto, RegistrationCodeRequestDto } from './dto/registration-verification.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -39,6 +40,20 @@ export class AuthController {
   @ApiOperation({ summary: 'Create a new account' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('register/request-code')
+  requestRegistrationCode(@Body() dto: RegistrationCodeRequestDto) {
+    return this.authService.requestRegistrationCode(dto.email, dto.password);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('register/confirm-code')
+  confirmRegistrationCode(@Body() dto: RegistrationCodeConfirmDto) {
+    return this.authService.confirmRegistrationCode(dto.email, dto.code);
   }
 
   @Public()

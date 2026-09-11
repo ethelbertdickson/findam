@@ -50,6 +50,15 @@ export class ProjectorProController {
     return this.service.issueDeepgramToken(user.sub, installationId, deviceFingerprint, user.role === 'ADMIN');
   }
 
+  @Post('deepgram/session/complete')
+  @ApiBearerAuth()
+  completeSession(
+    @CurrentUser() user: JwtAccessPayload,
+    @Body('sessionId') sessionId: string,
+  ) {
+    return this.service.completeSession(user.sub, sessionId);
+  }
+
   @Public()
   @Post('payments/paystack/webhook')
   @HttpCode(200)
