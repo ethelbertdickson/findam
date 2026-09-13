@@ -177,11 +177,64 @@ export class ProjectorProService {
 
   async completeSession(userId: string, sessionId: string) {
     if (!sessionId?.trim()) return { completed: false };
-    const result = await this.prisma.projectorProSession.updateMany({
-      where: { id: sessionId.trim(), userId, status: 'ACTIVE' },
-      data: { status: 'COMPLETED', completedAt: new Date() },
+    const sessionKey = sessionId.trim();
+    const result = await this.prisma.$transaction(async (tx) => {
+      const session = await tx.projectorProSession.findFirst({
+        where: { id: sessionKey, userId, status: 'ACTIVE' },
+      });
+      if (!session) return { completed: false, consumedSeconds: 0 };
+
+      const now = new Date();
+      const elapsedSeconds = Math.max(1, Math.ceil((now.getTime() - session.createdAt.getTime()) / 1000));
+      const alreadyBilledBeyondReservation = Math.max(0, session.consumedSeconds - session.reservedSeconds);
+      const additionalSeconds = Math.max(0, elapsedSeconds - session.reservedSeconds - alreadyBilledBeyondReservation);
+      const refundSeconds = Math.max(0, session.reservedSeconds - elapsedSeconds);
+      const wallet = await tx.projectorProWallet.findUnique({ where: { userId } });
+      if (!wallet) return { completed: false, consumedSeconds: 0 };
+      if (additionalSeconds > 0) {
+        const charged = await tx.projectorProWallet.updateMany({
+          where: { id: wallet.id, balanceSeconds: { gte: additionalSeconds } },
+          data: { balanceSeconds: { decrement: additionalSeconds } },
+        });
+        if (charged.count !== 1) throw new ForbiddenException('Your transcription balance has been exhausted.');
+        await tx.projectorProCreditEntry.create({
+          data: { walletId: wallet.id, type: 'CONSUMPTION', seconds: -additionalSeconds, reference: `consumption:${session.id}`, description: 'Actual service session time' },
+        });
+      }
+      if (refundSeconds > 0) {
+        await tx.projectorProWallet.update({ where: { id: wallet.id }, data: { balanceSeconds: { increment: refundSeconds } } });
+        await tx.projectorProCreditEntry.create({
+          data: { walletId: wallet.id, type: 'RELEASE', seconds: refundSeconds, reference: `release:${session.id}`, description: 'Unused session reservation returned' },
+        });
+      }
+      await tx.projectorProSession.update({ where: { id: session.id }, data: { status: 'COMPLETED', consumedSeconds: elapsedSeconds, completedAt: now } });
+      return { completed: true, consumedSeconds: elapsedSeconds };
     });
-    return { completed: result.count === 1 };
+    return result;
+  }
+
+  async heartbeatSession(userId: string, sessionId: string) {
+    if (!sessionId?.trim()) return { active: false };
+    const sessionKey = sessionId.trim();
+    return this.prisma.$transaction(async (tx) => {
+      const session = await tx.projectorProSession.findFirst({ where: { id: sessionKey, userId, status: 'ACTIVE' } });
+      if (!session) return { active: false };
+      const now = new Date();
+      const elapsedSeconds = Math.max(1, Math.ceil((now.getTime() - session.createdAt.getTime()) / 1000));
+      const previousExtra = Math.max(0, session.consumedSeconds - session.reservedSeconds);
+      const currentExtra = Math.max(0, elapsedSeconds - session.reservedSeconds);
+      const additionalSeconds = Math.max(0, currentExtra - previousExtra);
+      const wallet = await tx.projectorProWallet.findUnique({ where: { userId } });
+      if (!wallet) throw new ForbiddenException('Your transcription balance is unavailable.');
+      if (additionalSeconds > 0) {
+        const charged = await tx.projectorProWallet.updateMany({ where: { id: wallet.id, balanceSeconds: { gte: additionalSeconds } }, data: { balanceSeconds: { decrement: additionalSeconds } } });
+        if (charged.count !== 1) throw new ForbiddenException('Your transcription balance has been exhausted.');
+        await tx.projectorProCreditEntry.create({ data: { walletId: wallet.id, type: 'CONSUMPTION', seconds: -additionalSeconds, reference: `consumption:${session.id}:${elapsedSeconds}`, description: 'Actual service session time' } });
+      }
+      if (elapsedSeconds > session.consumedSeconds)
+        await tx.projectorProSession.update({ where: { id: session.id }, data: { consumedSeconds: elapsedSeconds } });
+      return { active: true, elapsedSeconds, balanceSeconds: wallet.balanceSeconds - additionalSeconds };
+    });
   }
 
   async processPaystackWebhook(signature: string, rawBody: Buffer | undefined, body: unknown) {

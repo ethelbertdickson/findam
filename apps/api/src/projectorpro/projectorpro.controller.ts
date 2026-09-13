@@ -59,6 +59,15 @@ export class ProjectorProController {
     return this.service.completeSession(user.sub, sessionId);
   }
 
+  @Post('deepgram/session/heartbeat')
+  @ApiBearerAuth()
+  heartbeatSession(
+    @CurrentUser() user: JwtAccessPayload,
+    @Body('sessionId') sessionId: string,
+  ) {
+    return this.service.heartbeatSession(user.sub, sessionId);
+  }
+
   @Public()
   @Post('payments/paystack/webhook')
   @HttpCode(200)
