@@ -44,8 +44,41 @@ export class AuthService {
 
   async requestRegistrationCode(email: string, password: string) {
     const normalizedEmail = email.trim().toLowerCase();
-    if (await this.usersService.findByEmail(normalizedEmail))
+    if (await this.usersService.findByEmail(normalizedEmail)) {
+      const mailKey = process.env.RESEND_API_KEY;
+      const mailFrom = process.env.MAIL_FROM;
+      if (mailKey && mailFrom) {
+        const accountExistsEmailHtml = `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#eef3f7;font-family:Arial,Helvetica,sans-serif;color:#173047;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef3f7;padding:32px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #d8e2ea;border-radius:16px;overflow:hidden;">
+          <tr><td style="background:#0b1f33;padding:28px 32px;color:#ffffff;font-size:22px;font-weight:700;">PROJECTOR PRO</td></tr>
+          <tr><td style="padding:36px 32px 28px;">
+            <div style="font-size:27px;line-height:1.2;font-weight:700;color:#102b43;">Your account is already registered</div>
+            <p style="font-size:16px;line-height:1.6;color:#526b7d;margin:16px 0 24px;">Someone tried to create a Projector Pro account with this email address, but an account already exists.</p>
+            <div style="background:#f1f7f5;border:1px solid #b9dfcc;border-radius:12px;padding:18px 20px;color:#176344;font-size:15px;line-height:1.6;">No new verification code was issued. Please return to Projector Pro and use <strong>Sign in</strong> with this email address.</div>
+            <p style="font-size:14px;line-height:1.6;color:#718695;margin:24px 0 0;">If you did not make this request, you can safely ignore this message.</p>
+          </td></tr>
+          <tr><td style="border-top:1px solid #e4ebf0;padding:20px 32px;background:#f8fafb;font-size:12px;line-height:1.6;color:#718695;">For your security, never share your password. This message was sent automatically by Projector Pro.</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${mailKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: mailFrom, to: [normalizedEmail], subject: 'Your Projector Pro account already exists', html: accountExistsEmailHtml }),
+          });
+        } catch {
+          // The registration response remains deterministic even if notification delivery fails.
+        }
+      }
       throw new ConflictException('An account with this email already exists');
+    }
     const mailKey = process.env.RESEND_API_KEY;
     const mailFrom = process.env.MAIL_FROM;
     if (!mailKey || !mailFrom)
