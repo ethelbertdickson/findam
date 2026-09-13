@@ -42,6 +42,19 @@ export class ProjectorProService {
       lastPackageCode: latestPurchase?.packageCode ?? null,
     };
     const wallet = await this.prisma.projectorProWallet.findUnique({ where: { userId } });
+    // The first-use trial is intentionally not persisted until AI transcription
+    // starts, so an unused new account can see its promised 60 minutes without
+    // consuming or unlocking the trial on a device.
+    if (!wallet || (!wallet.trialGrantedAt && wallet.balanceSeconds === 0))
+      return {
+        unlimited: false,
+        seconds: 3600,
+        minutes: 60,
+        trialGranted: true,
+        trialStartedAt: null,
+        lastPurchaseAt: latestPurchase?.fulfilledAt ?? null,
+        lastPackageCode: latestPurchase?.packageCode ?? null,
+      };
     return {
       unlimited: false,
       seconds: wallet?.balanceSeconds ?? 0,
