@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Linking } from "react-native";
+import { Image, Linking } from "react-native";
 import { router } from "expo-router";
 import {
   Pressable,
@@ -58,6 +58,7 @@ export default function ProfessionalsScreen() {
       />
       <ScrollView
         horizontal
+        style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chips}
       >
@@ -96,11 +97,7 @@ export default function ProfessionalsScreen() {
             <View key={profile.id} style={styles.card}>
               <View style={styles.cardTop}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {(profile.displayName || firstName || "P")
-                      .slice(0, 1)
-                      .toUpperCase()}
-                  </Text>
+                  {(profile.portfolioUrls?.[0] || profile.user?.avatarUrl) ? <Image source={{ uri: profile.portfolioUrls?.[0] || profile.user?.avatarUrl || undefined }} style={styles.avatarImage} /> : <Text style={styles.avatarText}>{(profile.displayName || firstName || "P").slice(0, 1).toUpperCase()}</Text>}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>
@@ -157,7 +154,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     backgroundColor: COLORS.surface,
   },
-  chips: { gap: 8, padding: 16 },
+  chips: { gap: 8, padding: 16, alignItems: "center" },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -188,6 +185,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 23 },
   name: { color: COLORS.text, fontWeight: "800", fontSize: 16 },
   category: {
     color: COLORS.primary,

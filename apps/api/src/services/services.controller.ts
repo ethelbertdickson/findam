@@ -12,6 +12,7 @@ import { ServicesService } from './services.service';
 export class ServicesController {
   constructor(private readonly services: ServicesService) {}
   @Public() @Get() findAll(@Query() query: ServicesQueryDto) { return this.services.findAll(query); }
+  @Get('mine') mine(@CurrentUser() user: JwtAccessPayload) { return this.services.findMine(user.sub); }
   @Public() @Get(':id') findOne(@Param('id') id: string) { return this.services.findOne(id); }
   @Post() create(@CurrentUser() user: JwtAccessPayload, @Body() dto: ServiceListingDto) { return this.services.create(user.sub, dto); }
 }

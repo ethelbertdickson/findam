@@ -1,7 +1,7 @@
-import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { SECURE_STORE_KEYS } from "../constants";
 import type { AuthTokens, User } from "../types";
+import { deleteToken, getToken, setToken } from "../services/token-storage";
 
 interface AuthState {
   user: User | null;
@@ -19,30 +19,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   isHydrated: false,
 
   hydrate: async () => {
-    const accessToken = await SecureStore.getItemAsync(
-      SECURE_STORE_KEYS.accessToken,
-    );
+    const accessToken = await getToken(SECURE_STORE_KEYS.accessToken);
     set({ accessToken, isHydrated: true });
   },
 
   setSession: async ({ user, accessToken, refreshToken }) => {
-    await SecureStore.setItemAsync(SECURE_STORE_KEYS.accessToken, accessToken);
-    await SecureStore.setItemAsync(
-      SECURE_STORE_KEYS.refreshToken,
-      refreshToken,
-    );
+    await setToken(SECURE_STORE_KEYS.accessToken, accessToken);
+    await setToken(SECURE_STORE_KEYS.refreshToken, refreshToken);
     set({ user, accessToken });
   },
 
   setUser: (user) => set({ user }),
 
   clearSession: async () => {
-    await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.accessToken);
-    await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.refreshToken);
+    await deleteToken(SECURE_STORE_KEYS.accessToken);
+    await deleteToken(SECURE_STORE_KEYS.refreshToken);
     set({ user: null, accessToken: null });
   },
 }));
 
 export function getStoredRefreshToken() {
-  return SecureStore.getItemAsync(SECURE_STORE_KEYS.refreshToken);
+  return getToken(SECURE_STORE_KEYS.refreshToken);
 }

@@ -70,7 +70,7 @@ export default function HomeScreen() {
           <SectionHeader
             title="Latest listings"
             actionLabel="See all"
-            onActionPress={() => router.push("/search")}
+            onActionPress={() => router.push("/listings")}
           />
           <ListingFeed horizontal />
           <SectionHeader

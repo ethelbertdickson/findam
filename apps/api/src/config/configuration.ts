@@ -36,6 +36,7 @@ export default () => ({
   geoapify: {
     apiKey: process.env.GEOAPIFY_API_KEY,
   },
+  googleMaps: { apiKey: process.env.GOOGLE_MAPS_API_KEY },
   throttle: {
     ttl: parseInt(process.env.THROTTLE_TTL ?? '60', 10),
     limit: parseInt(process.env.THROTTLE_LIMIT ?? '100', 10),

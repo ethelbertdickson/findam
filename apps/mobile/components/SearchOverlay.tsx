@@ -48,6 +48,11 @@ const PROPERTY_TYPES: Option[] = [
   { label: "Shop", value: "SHOP" },
   { label: "Office", value: "OFFICE" },
   { label: "Commercial", value: "COMMERCIAL" },
+  { label: "Warehouse", value: "WAREHOUSE" },
+  { label: "Filling station", value: "FILLING_STATION" },
+  { label: "Hotel", value: "HOTEL" },
+  { label: "School", value: "SCHOOL" },
+  { label: "Hospital", value: "HOSPITAL" },
   { label: "Other", value: "OTHER" },
 ];
 

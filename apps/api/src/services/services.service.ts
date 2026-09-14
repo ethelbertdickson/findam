@@ -18,6 +18,10 @@ export class ServicesService {
     });
   }
 
+  findMine(userId: string) {
+    return this.prisma.serviceListing.findMany({ where: { createdById: userId }, include, orderBy: { createdAt: 'desc' } });
+  }
+
   async findOne(id: string) {
     const service = await this.prisma.serviceListing.findUnique({ where: { id }, include });
     if (!service) throw new NotFoundException('Service not found');

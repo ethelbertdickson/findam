@@ -1,8 +1,8 @@
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
 import { API_URL, SECURE_STORE_KEYS } from "../constants";
 import { getStoredRefreshToken, useAuthStore } from "../store/auth-store";
 import type { AuthTokens } from "../types";
+import { getToken } from "./token-storage";
 
 // The mobile app talks only to the NestJS REST API; it never touches PostgreSQL directly.
 export const apiClient = axios.create({
@@ -11,9 +11,7 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use(async (config) => {
-  const accessToken = await SecureStore.getItemAsync(
-    SECURE_STORE_KEYS.accessToken,
-  );
+  const accessToken = await getToken(SECURE_STORE_KEYS.accessToken);
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }

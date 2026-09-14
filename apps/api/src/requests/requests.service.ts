@@ -15,5 +15,5 @@ export class RequestsService {
   }
   mine(userId: string) { return this.prisma.userRequest.findMany({ where: { createdById: userId }, include, orderBy: { createdAt: 'desc' } }); }
   async findOne(id: string) { const request = await this.prisma.userRequest.findUnique({ where: { id }, include }); if (!request) throw new NotFoundException('Request not found'); return request; }
-  create(userId: string, dto: CreateRequestDto) { return this.prisma.userRequest.create({ data: { createdById: userId, type: dto.type, title: dto.title.trim(), description: dto.description.trim(), countryId: dto.countryId, stateId: dto.stateId, cityId: dto.cityId, budgetMin: dto.budgetMin, budgetMax: dto.budgetMax, bedrooms: dto.bedrooms, serviceCategory: dto.serviceCategory, contactMode: dto.contactMode || 'MANAGED' }, include }); }
+  create(userId: string, dto: CreateRequestDto) { return this.prisma.userRequest.create({ data: { createdById: userId, type: dto.type, title: dto.title.trim(), description: dto.description.trim(), criteria: dto.criteria as Prisma.InputJsonValue | undefined, countryId: dto.countryId, stateId: dto.stateId, cityId: dto.cityId, budgetMin: dto.budgetMin, budgetMax: dto.budgetMax, bedrooms: dto.bedrooms, serviceCategory: dto.serviceCategory, contactMode: dto.contactMode || 'MANAGED' }, include }); }
 }

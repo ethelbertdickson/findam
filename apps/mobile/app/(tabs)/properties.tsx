@@ -26,6 +26,11 @@ const PROPERTY_TYPES: { label: string; value?: PropertyType }[] = [
   { label: "Shops", value: "SHOP" },
   { label: "Offices", value: "OFFICE" },
   { label: "Commercial", value: "COMMERCIAL" },
+  { label: "Warehouses", value: "WAREHOUSE" },
+  { label: "Filling stations", value: "FILLING_STATION" },
+  { label: "Hotels", value: "HOTEL" },
+  { label: "Schools", value: "SCHOOL" },
+  { label: "Hospitals", value: "HOSPITAL" },
   { label: "Other", value: "OTHER" },
 ];
 

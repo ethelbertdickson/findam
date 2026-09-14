@@ -28,3 +28,8 @@ export async function createManagedProfessional(input: Record<string, unknown>) 
   const { data } = await apiClient.post<ProfessionalProfile>('/professionals/managed', input);
   return data;
 }
+
+export async function fetchMyProfessional() {
+  const { data } = await apiClient.get<ProfessionalProfile>('/professionals/me/profile');
+  return data;
+}

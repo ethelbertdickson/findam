@@ -34,6 +34,17 @@ export class LocationsService {
   ) {}
 
   async autocomplete(query: LocationSearchDto) {
+    const googleKey = this.config.get<string>('googleMaps.apiKey');
+    if (googleKey) {
+      try {
+        const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': googleKey, 'X-Goog-FieldMask': 'suggestions.placePrediction' }, body: JSON.stringify({ input: query.q.trim(), languageCode: 'en' }), signal: AbortSignal.timeout(10000) });
+        if (response.ok) {
+          const data = (await response.json()) as { suggestions?: Array<{ placePrediction?: { placeId?: string; text?: { text?: string }; structuredFormat?: { mainText?: { text?: string }; secondaryText?: { text?: string } } } }> };
+          const results = (data.suggestions ?? []).map((item) => { const p = item.placePrediction; return { id: p?.placeId ?? p?.text?.text ?? crypto.randomUUID(), provider: 'GOOGLE' as const, formattedAddress: p?.text?.text ?? '', name: p?.structuredFormat?.mainText?.text, countryName: p?.structuredFormat?.secondaryText?.text ?? 'Unknown', countryCode: 'XX', stateName: p?.structuredFormat?.secondaryText?.text ?? 'Unknown', cityName: p?.structuredFormat?.secondaryText?.text ?? 'Unknown', areaName: p?.structuredFormat?.mainText?.text ?? '', latitude: undefined, longitude: undefined }; }).filter((item) => item.formattedAddress);
+          if (results.length) return results;
+        }
+      } catch { /* Fall back to Geoapify when Google is unavailable. */ }
+    }
     const apiKey = this.config.get<string>('geoapify.apiKey');
     if (!apiKey)
       throw new ServiceUnavailableException(

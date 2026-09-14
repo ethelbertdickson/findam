@@ -114,6 +114,11 @@ enum PropertyType {
   SHOP
   OFFICE
   COMMERCIAL
+  WAREHOUSE
+  FILLING_STATION
+  HOTEL
+  SCHOOL
+  HOSPITAL
   OTHER
 }
 
@@ -461,6 +466,7 @@ model UserRequest {
   type            UserRequestType
   title           String
   description     String
+  criteria        Json?
   countryId       String?
   country         Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
   stateId         String?

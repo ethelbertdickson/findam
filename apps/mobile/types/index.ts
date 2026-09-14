@@ -31,6 +31,11 @@ export type PropertyType =
   | "SHOP"
   | "OFFICE"
   | "COMMERCIAL"
+  | "WAREHOUSE"
+  | "FILLING_STATION"
+  | "HOTEL"
+  | "SCHOOL"
+  | "HOSPITAL"
   | "OTHER";
 
 export type RentPeriod = "MONTHLY" | "QUARTERLY" | "BIANNUALLY" | "ANNUALLY";
@@ -64,7 +69,7 @@ export interface ListingImage {
 
 export interface LocationSuggestion {
   id: string;
-  provider: "GEOAPIFY" | "DEVICE";
+  provider: "GEOAPIFY" | "GOOGLE" | "DEVICE";
   formattedAddress: string;
   name?: string;
   countryName: string;
@@ -73,8 +78,8 @@ export interface LocationSuggestion {
   cityName: string;
   areaName?: string;
   postcode?: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   resultType?: string;
 }
 

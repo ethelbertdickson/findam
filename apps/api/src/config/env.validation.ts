@@ -87,6 +87,10 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  GOOGLE_MAPS_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
   DEEPGRAM_API_KEY?: string;
 
   @IsOptional()

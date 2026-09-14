@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "../store/auth-store";
 import { COLORS } from "../constants";
@@ -34,6 +35,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="light" />
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -118,6 +120,7 @@ export default function RootLayout() {
               options={{ headerShown: true, title: "Agent profile" }}
             />
           </Stack>
+          </KeyboardAvoidingView>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
