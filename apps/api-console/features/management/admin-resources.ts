@@ -26,6 +26,7 @@ export interface ManagedUser {
   _count: { listings: number };
 }
 export interface ManagedUserDetails extends ManagedUser {
+  projectorProTrialAvailable: boolean;
   projectorProWallet: {
     balanceSeconds: number;
     trialGrantedAt: string | null;

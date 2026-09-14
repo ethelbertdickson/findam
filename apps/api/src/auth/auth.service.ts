@@ -38,6 +38,7 @@ export class AuthService {
 
   async register(dto: RegisterDto): Promise<AuthResult> {
     const user = await this.usersService.create(dto);
+    await this.grantProjectorProTrial(user.id);
     const tokens = await this.issueTokens(user.id, user.email, user.role);
     return { ...tokens, user: toPublicUser(user) };
   }
@@ -70,8 +71,16 @@ export class AuthService {
         try {
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${mailKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: mailFrom, to: [normalizedEmail], subject: 'Your Projector Pro account already exists', html: accountExistsEmailHtml }),
+            headers: {
+              Authorization: `Bearer ${mailKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: mailFrom,
+              to: [normalizedEmail],
+              subject: 'Your Projector Pro account already exists',
+              html: accountExistsEmailHtml,
+            }),
           });
         } catch {
           // The registration response remains deterministic even if notification delivery fails.
@@ -82,14 +91,28 @@ export class AuthService {
     const mailKey = process.env.RESEND_API_KEY;
     const mailFrom = process.env.MAIL_FROM;
     if (!mailKey || !mailFrom)
-      throw new ServiceUnavailableException('Email verification is not configured yet.');
+      throw new ServiceUnavailableException(
+        'Email verification is not configured yet.',
+      );
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
     await this.prisma.pendingRegistration.upsert({
       where: { email: normalizedEmail },
-      create: { email: normalizedEmail, passwordHash, firstName: 'Projector', lastName: 'User', codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(Date.now() + 15 * 60_000) },
-      update: { passwordHash, codeHash: createHash('sha256').update(code).digest('hex'), expiresAt: new Date(Date.now() + 15 * 60_000), attempts: 0 },
+      create: {
+        email: normalizedEmail,
+        passwordHash,
+        firstName: 'Projector',
+        lastName: 'User',
+        codeHash: createHash('sha256').update(code).digest('hex'),
+        expiresAt: new Date(Date.now() + 15 * 60_000),
+      },
+      update: {
+        passwordHash,
+        codeHash: createHash('sha256').update(code).digest('hex'),
+        expiresAt: new Date(Date.now() + 15 * 60_000),
+        attempts: 0,
+      },
     });
     const verificationEmailHtml = `<!doctype html>
 <html lang="en">
@@ -127,26 +150,56 @@ export class AuthService {
 </html>`;
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${mailKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: mailFrom, to: [normalizedEmail], subject: 'Verify your Projector Pro account', html: verificationEmailHtml }),
+      headers: {
+        Authorization: `Bearer ${mailKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: mailFrom,
+        to: [normalizedEmail],
+        subject: 'Verify your Projector Pro account',
+        html: verificationEmailHtml,
+      }),
     });
     if (!response.ok) {
-      await this.prisma.pendingRegistration.deleteMany({ where: { email: normalizedEmail } });
-      throw new ServiceUnavailableException('Verification email could not be sent.');
+      await this.prisma.pendingRegistration.deleteMany({
+        where: { email: normalizedEmail },
+      });
+      throw new ServiceUnavailableException(
+        'Verification email could not be sent.',
+      );
     }
     return { message: 'A verification code was sent to your email.' };
   }
 
-  async confirmRegistrationCode(email: string, code: string): Promise<AuthResult> {
+  async confirmRegistrationCode(
+    email: string,
+    code: string,
+  ): Promise<AuthResult> {
     const normalizedEmail = email.trim().toLowerCase();
-    const pending = await this.prisma.pendingRegistration.findUnique({ where: { email: normalizedEmail } });
+    const pending = await this.prisma.pendingRegistration.findUnique({
+      where: { email: normalizedEmail },
+    });
     if (!pending || pending.expiresAt < new Date() || pending.attempts >= 5)
-      throw new UnauthorizedException('The verification code is invalid or expired.');
+      throw new UnauthorizedException(
+        'The verification code is invalid or expired.',
+      );
     const expected = Buffer.from(pending.codeHash, 'utf8');
-    const actual = Buffer.from(createHash('sha256').update(code.trim()).digest('hex'), 'utf8');
-    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-      await this.prisma.pendingRegistration.update({ where: { id: pending.id }, data: { attempts: { increment: 1 } } });
-      throw new UnauthorizedException('The verification code is invalid or expired.');
+    const actual = Buffer.from(
+      createHash('sha256').update(code.trim()).digest('hex'),
+      'utf8',
+    );
+    if (
+      expected.length !== actual.length ||
+      !timingSafeEqual(expected, actual)
+    ) {
+      await this.prisma.pendingRegistration.update({
+        where: { id: pending.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException(
+        'The verification code is invalid or expired.',
+      );
     }
     const user = await this.prisma.user.create({
       data: {
@@ -157,9 +210,45 @@ export class AuthService {
         role: 'USER',
       },
     });
+    await this.grantProjectorProTrial(user.id);
     await this.prisma.pendingRegistration.delete({ where: { id: pending.id } });
     const tokens = await this.issueTokens(user.id, user.email, user.role);
-    return { ...tokens, user: toPublicUser({ ...user, passwordHash: pending.passwordHash }) };
+    return {
+      ...tokens,
+      user: toPublicUser({ ...user, passwordHash: pending.passwordHash }),
+    };
+  }
+
+  /**
+   * Grant the ProjectorPro trial once, immediately after account creation.
+   * The wallet existence check is performed inside a transaction so retries
+   * or concurrent confirmation requests cannot create a second grant.
+   */
+  private async grantProjectorProTrial(userId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const existingWallet = await tx.projectorProWallet.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (existingWallet) return;
+
+      const wallet = await tx.projectorProWallet.create({
+        data: {
+          userId,
+          balanceSeconds: 3600,
+          trialGrantedAt: new Date(),
+        },
+      });
+      await tx.projectorProCreditEntry.create({
+        data: {
+          walletId: wallet.id,
+          type: 'PURCHASE',
+          seconds: 3600,
+          reference: `trial:${userId}`,
+          description: 'One-time ProjectorPro free trial',
+        },
+      });
+    });
   }
 
   async login(email: string, password: string): Promise<AuthResult> {

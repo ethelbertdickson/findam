@@ -268,7 +268,8 @@ export function AdminUsersPage({
               <Metric
                 label="Balance"
                 value={formatSeconds(
-                  selectedUser.projectorProWallet?.balanceSeconds ?? 0,
+                  selectedUser.projectorProWallet?.balanceSeconds ??
+                    (selectedUser.projectorProTrialAvailable ? 3600 : 0),
                 )}
               />
               <Metric
@@ -312,7 +313,9 @@ export function AdminUsersPage({
                 </span>{' '}
                 {selectedUser.projectorProWallet?.trialGrantedAt
                   ? formatDateTime(selectedUser.projectorProWallet.trialGrantedAt)
-                  : 'Not granted'}
+                  : selectedUser.projectorProTrialAvailable
+                    ? 'Available — not claimed'
+                    : 'Not granted'}
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">

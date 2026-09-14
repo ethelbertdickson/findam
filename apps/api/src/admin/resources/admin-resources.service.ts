@@ -67,7 +67,12 @@ export class AdminResourcesService {
       },
     });
     if (!user) throw new NotFoundException('User account was not found.');
-    return user;
+    return {
+      ...user,
+      // The first 60-minute trial is intentionally claimed on the first
+      // ProjectorPro device session, not during ordinary account registration.
+      projectorProTrialAvailable: user.projectorProWallet === null,
+    };
   }
 
   async getUsers(query: AdminUsersQueryDto) {
