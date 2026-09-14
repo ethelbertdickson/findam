@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminRoleGuard } from '../auth/admin-role.guard';
 import { AdminResourcesService } from './admin-resources.service';
@@ -15,6 +15,14 @@ export class AdminResourcesController {
   @ApiOperation({ summary: 'List and search users for administration' })
   getUsers(@Query() query: AdminUsersQueryDto) {
     return this.resources.getUsers(query);
+  }
+
+  @Get('users/:id')
+  @ApiOperation({
+    summary: 'Get read-only account and ProjectorPro usage details',
+  })
+  getUserDetails(@Param('id') id: string) {
+    return this.resources.getUserDetails(id);
   }
 
   @Get('listings')

@@ -25,6 +25,41 @@ export interface ManagedUser {
   } | null;
   _count: { listings: number };
 }
+export interface ManagedUserDetails extends ManagedUser {
+  projectorProWallet: {
+    balanceSeconds: number;
+    trialGrantedAt: string | null;
+    entries: Array<{
+      id: string;
+      type: string;
+      seconds: number;
+      description: string;
+      createdAt: string;
+    }> | null;
+  } | null;
+  projectorProPurchases: Array<{
+    packageCode: string;
+    creditSeconds: number;
+    status: string;
+    createdAt: string;
+    fulfilledAt: string | null;
+  }>;
+  projectorProSessions: Array<{
+    id: string;
+    installationId: string;
+    reservedSeconds: number;
+    consumedSeconds: number;
+    status: string;
+    createdAt: string;
+    completedAt: string | null;
+  }>;
+  projectorProTrialDevices: Array<{ deviceId: string; grantedAt: string }>;
+  refreshTokens: Array<{
+    createdAt: string;
+    expiresAt: string;
+    revokedAt: string | null;
+  }>;
+}
 
 export interface ManagedListing {
   id: string;
@@ -95,6 +130,9 @@ export function getManagedUsers(filters: UsersFilters) {
   return apiRequest<PaginatedResponse<ManagedUser>>(
     `/admin/users?${toQueryString(filters)}`,
   );
+}
+export function getManagedUserDetails(id: string) {
+  return apiRequest<ManagedUserDetails>(`/admin/users/${id}`);
 }
 
 export function getManagedListings(filters: ListingsFilters) {

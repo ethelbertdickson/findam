@@ -49,6 +49,8 @@ import {
   type PaginatedResponse,
   type UsersFilters,
   updateManagedUserStatus,
+  getManagedUserDetails,
+  type ManagedUserDetails,
 } from './admin-resources';
 
 type RecoverSession = () => Promise<boolean>;
@@ -85,6 +87,10 @@ export function AdminUsersPage({
     useState<PendingManagementAction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ManagedUserDetails | null>(
+    null,
+  );
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,7 +126,9 @@ export function AdminUsersPage({
     const timer = window.setTimeout(() => {
       const nextQuery = search.trim();
       setFilters((current) =>
-        current.q === nextQuery ? current : { ...current, q: nextQuery, page: 1 },
+        current.q === nextQuery
+          ? current
+          : { ...current, q: nextQuery, page: 1 },
       );
     }, 300);
     return () => window.clearTimeout(timer);
@@ -150,10 +158,25 @@ export function AdminUsersPage({
     }
   }
 
+  async function openDetails(user: ManagedUser) {
+    setDetailsLoading(true);
+    try {
+      setSelectedUser(await getManagedUserDetails(user.id));
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
   return (
     <ManagementLayout
       title={fixedRole === 'AGENT' ? 'Agents' : 'Users'}
-      description={fixedRole === 'AGENT' ? 'Review and manage every marketplace agent.' : 'Search and review every account using Findam.'}
+      description={
+        fixedRole === 'AGENT'
+          ? 'Review and manage every marketplace agent.'
+          : 'Search and review every account using Findam.'
+      }
       icon={Users}
       total={result?.total}
       search={search}
@@ -162,24 +185,26 @@ export function AdminUsersPage({
       onSearch={submitSearch}
       filters={
         <>
-          {!fixedRole ? <NativeSelect
-            aria-label="Filter users by role"
-            value={filters.role}
-            onChange={(event) =>
-              setFilters((current) => ({
-                ...current,
-                role: event.target.value,
-                page: 1,
-              }))
-            }
-          >
-            <NativeSelectOption value="">All roles</NativeSelectOption>
-            <NativeSelectOption value="USER">Users</NativeSelectOption>
-            <NativeSelectOption value="AGENT">Agents</NativeSelectOption>
-            <NativeSelectOption value="ADMIN">
-              Administrators
-            </NativeSelectOption>
-          </NativeSelect> : null}
+          {!fixedRole ? (
+            <NativeSelect
+              aria-label="Filter users by role"
+              value={filters.role}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  role: event.target.value,
+                  page: 1,
+                }))
+              }
+            >
+              <NativeSelectOption value="">All roles</NativeSelectOption>
+              <NativeSelectOption value="USER">Users</NativeSelectOption>
+              <NativeSelectOption value="AGENT">Agents</NativeSelectOption>
+              <NativeSelectOption value="ADMIN">
+                Administrators
+              </NativeSelectOption>
+            </NativeSelect>
+          ) : null}
           <NativeSelect
             aria-label="Filter users by status"
             value={filters.status}
@@ -213,6 +238,142 @@ export function AdminUsersPage({
         />
       }
     >
+      {detailsLoading ? (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Loading account details…
+        </p>
+      ) : null}
+      {selectedUser ? (
+        <Card className="mb-4">
+          <CardContent className="space-y-4 pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {selectedUser.email} · {titleCase(selectedUser.role)} ·{' '}
+                  {selectedUser.isActive ? 'Active' : 'Suspended'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedUser(null)}
+              >
+                Close
+              </Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Metric
+                label="Balance"
+                value={formatSeconds(
+                  selectedUser.projectorProWallet?.balanceSeconds ?? 0,
+                )}
+              />
+              <Metric
+                label="Purchased"
+                value={formatSeconds(
+                  selectedUser.projectorProPurchases
+                    .filter((item) => item.status === 'SUCCESS')
+                    .reduce((sum, item) => sum + item.creditSeconds, 0),
+                )}
+              />
+              <Metric
+                label="Consumed"
+                value={formatSeconds(
+                  selectedUser.projectorProSessions.reduce(
+                    (sum, item) => sum + item.consumedSeconds,
+                    0,
+                  ),
+                )}
+              />
+              <Metric
+                label="Sessions"
+                value={String(selectedUser.projectorProSessions.length)}
+              />
+            </div>
+            <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              <p>
+                <span className="font-medium text-foreground">Joined:</span>{' '}
+                {formatDate(selectedUser.createdAt)}
+              </p>
+              <p>
+                <span className="font-medium text-foreground">
+                  Latest login:
+                </span>{' '}
+                {selectedUser.refreshTokens[0]
+                  ? formatDateTime(selectedUser.refreshTokens[0].createdAt)
+                  : 'No session recorded'}
+              </p>
+              <p>
+                <span className="font-medium text-foreground">
+                  Trial granted:
+                </span>{' '}
+                {selectedUser.projectorProWallet?.trialGrantedAt
+                  ? formatDateTime(selectedUser.projectorProWallet.trialGrantedAt)
+                  : 'Not granted'}
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="mb-2 font-medium">Recent sessions</h3>
+                {selectedUser.projectorProSessions.length ? (
+                  selectedUser.projectorProSessions.slice(0, 8).map((item) => (
+                    <p key={item.id} className="text-xs text-muted-foreground">
+                      {titleCase(item.status)} · {item.consumedSeconds}s
+                      consumed of {item.reservedSeconds}s reserved · started{' '}
+                      {formatDateTime(item.createdAt)}
+                      {item.completedAt
+                        ? ` · ended ${formatDateTime(item.completedAt)}`
+                        : ''}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No ProjectorPro sessions.
+                  </p>
+                )}
+              </div>
+              <div>
+                <h3 className="mb-2 font-medium">Credit ledger</h3>
+                {(selectedUser.projectorProWallet?.entries ?? []).length ? (
+                  (selectedUser.projectorProWallet?.entries ?? [])
+                    .slice(0, 8)
+                    .map((item) => (
+                      <p
+                        key={item.id}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {titleCase(item.type)} · {item.seconds > 0 ? '+' : ''}
+                        {item.seconds}s · {item.description} ·{' '}
+                        {formatDateTime(item.createdAt)}
+                      </p>
+                    ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No credit entries.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-2 font-medium">Devices and activity</h3>
+              <p className="text-xs text-muted-foreground">
+                {selectedUser.projectorProTrialDevices.length} trial device(s) ·{' '}
+                {selectedUser.refreshTokens.length} recent login session
+                token(s) ·{' '}
+                {
+                  selectedUser.projectorProSessions.filter(
+                    (item) => item.status === 'EXPIRED',
+                  ).length
+                }{' '}
+                expired/failed session(s)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
       <Table>
         <TableHeader>
           <TableRow>
@@ -226,7 +387,11 @@ export function AdminUsersPage({
         </TableHeader>
         <TableBody>
           {result?.items.map((user) => (
-            <TableRow key={user.id}>
+            <TableRow
+              key={user.id}
+              className="cursor-pointer"
+              onClick={() => void openDetails(user)}
+            >
               <TableCell className="min-w-64 whitespace-normal py-3">
                 <div className="flex items-center gap-3">
                   <Avatar name={`${user.firstName} ${user.lastName}`} />
@@ -259,7 +424,8 @@ export function AdminUsersPage({
                   <Button
                     variant={user.isActive ? 'outline' : 'secondary'}
                     size="sm"
-                    onClick={() => {
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setActionError(null);
                       setPendingAction({
                         kind: 'user',
@@ -289,8 +455,20 @@ export function AdminUsersPage({
   );
 }
 
-export function AdminAgentsPage({ recoverSession, csrfToken }: { recoverSession: RecoverSession; csrfToken: string }) {
-  return <AdminUsersPage recoverSession={recoverSession} csrfToken={csrfToken} fixedRole="AGENT" />;
+export function AdminAgentsPage({
+  recoverSession,
+  csrfToken,
+}: {
+  recoverSession: RecoverSession;
+  csrfToken: string;
+}) {
+  return (
+    <AdminUsersPage
+      recoverSession={recoverSession}
+      csrfToken={csrfToken}
+      fixedRole="AGENT"
+    />
+  );
 }
 
 export function AdminListingsPage({
@@ -350,7 +528,9 @@ export function AdminListingsPage({
     const timer = window.setTimeout(() => {
       const nextQuery = search.trim();
       setFilters((current) =>
-        current.q === nextQuery ? current : { ...current, q: nextQuery, page: 1 },
+        current.q === nextQuery
+          ? current
+          : { ...current, q: nextQuery, page: 1 },
       );
     }, 300);
     return () => window.clearTimeout(timer);
@@ -913,6 +1093,29 @@ function formatDate(value: string) {
     month: 'short',
     year: 'numeric',
   }).format(new Date(value));
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('en-NG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function formatSeconds(seconds: number) {
+  const safe = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safe / 60);
+  const remaining = safe % 60;
+  return minutes ? `${minutes}m ${remaining}s (${safe}s)` : `${safe}s`;
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 font-semibold">{value}</p>
+    </div>
+  );
 }
 
 function formatCurrency(value: string) {

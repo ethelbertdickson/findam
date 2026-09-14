@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminListingsQueryDto } from './dto/admin-listings-query.dto';
@@ -10,6 +10,65 @@ import {
 @Injectable()
 export class AdminResourcesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getUserDetails(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        projectorProWallet: {
+          select: {
+            balanceSeconds: true,
+            trialGrantedAt: true,
+            entries: { orderBy: { createdAt: 'desc' }, take: 100 },
+          },
+        },
+        projectorProPurchases: {
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: {
+            packageCode: true,
+            creditSeconds: true,
+            status: true,
+            createdAt: true,
+            fulfilledAt: true,
+          },
+        },
+        projectorProSessions: {
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: {
+            id: true,
+            installationId: true,
+            reservedSeconds: true,
+            consumedSeconds: true,
+            status: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        },
+        projectorProTrialDevices: {
+          orderBy: { grantedAt: 'desc' },
+          select: { deviceId: true, grantedAt: true },
+        },
+        refreshTokens: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { createdAt: true, expiresAt: true, revokedAt: true },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User account was not found.');
+    return user;
+  }
 
   async getUsers(query: AdminUsersQueryDto) {
     const search = query.q?.trim();
