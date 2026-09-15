@@ -266,9 +266,9 @@ export function AdminUsersPage({
           if (!open) setSelectedUser(null);
         }}
       >
-        <DialogContent className="max-h-[min(92vh,900px)] max-w-5xl overflow-y-auto">
+        <DialogContent className="max-h-[min(92vh,900px)] w-[calc(100vw-2rem)] max-w-none overflow-y-auto sm:w-[calc(100vw-3rem)] sm:max-w-[1200px] lg:w-[min(94vw,1400px)]">
           {selectedUser ? <div className="space-y-5">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
               <div>
                 <DialogTitle className="text-lg font-semibold">
                   {selectedUser.firstName} {selectedUser.lastName}
@@ -278,7 +278,7 @@ export function AdminUsersPage({
                   {selectedUser.isActive ? 'Active' : 'Suspended'}
                 </DialogDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:ml-auto">
                 <Button variant="outline" size="sm" disabled={selectedUserIndex <= 0 || detailsLoading} onClick={() => void moveDetails(-1)}>
                   <ChevronLeft /> Previous
                 </Button>
