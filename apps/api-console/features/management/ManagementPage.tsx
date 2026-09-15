@@ -21,6 +21,12 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -90,6 +96,7 @@ export function AdminUsersPage({
   const [selectedUser, setSelectedUser] = useState<ManagedUserDetails | null>(
     null,
   );
+  const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -161,12 +168,22 @@ export function AdminUsersPage({
   async function openDetails(user: ManagedUser) {
     setDetailsLoading(true);
     try {
+      setSelectedUserIndex(
+        result?.items.findIndex((item) => item.id === user.id) ?? -1,
+      );
       setSelectedUser(await getManagedUserDetails(user.id));
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
       setDetailsLoading(false);
     }
+  }
+
+  async function moveDetails(step: -1 | 1) {
+    if (!result?.items.length || selectedUserIndex < 0) return;
+    const nextIndex = selectedUserIndex + step;
+    if (nextIndex < 0 || nextIndex >= result.items.length) return;
+    await openDetails(result.items[nextIndex]);
   }
 
   return (
@@ -243,27 +260,37 @@ export function AdminUsersPage({
           Loading account details…
         </p>
       ) : null}
-      {selectedUser ? (
-        <Card className="mb-4">
-          <CardContent className="space-y-4 pt-6">
+      <Dialog
+        open={Boolean(selectedUser)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedUser(null);
+        }}
+      >
+        <DialogContent className="max-h-[min(92vh,900px)] max-w-5xl overflow-y-auto">
+          {selectedUser ? <div className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">
+                <DialogTitle className="text-lg font-semibold">
                   {selectedUser.firstName} {selectedUser.lastName}
-                </h2>
-                <p className="text-sm text-muted-foreground">
+                </DialogTitle>
+                <DialogDescription>
                   {selectedUser.email} · {titleCase(selectedUser.role)} ·{' '}
                   {selectedUser.isActive ? 'Active' : 'Suspended'}
-                </p>
+                </DialogDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedUser(null)}
-              >
-                Close
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={selectedUserIndex <= 0 || detailsLoading} onClick={() => void moveDetails(-1)}>
+                  <ChevronLeft /> Previous
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {selectedUserIndex + 1} of {result?.items.length ?? 0}
+                </span>
+                <Button variant="outline" size="sm" disabled={selectedUserIndex < 0 || selectedUserIndex >= (result?.items.length ?? 1) - 1 || detailsLoading} onClick={() => void moveDetails(1)}>
+                  Next <ChevronRight />
+                </Button>
+              </div>
             </div>
+            {selectedUser.projectorProWallet || selectedUser.projectorProTrialAvailable || selectedUser.projectorProPurchases.length || selectedUser.projectorProSessions.length || selectedUser.projectorProTrialDevices.length ? <>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Metric
                 label="Balance"
@@ -374,9 +401,10 @@ export function AdminUsersPage({
                 expired/failed session(s)
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+            </> : <Card><CardContent className="pt-5"><p className="font-medium">Marketplace account</p><p className="text-sm text-muted-foreground">No ProjectorPro activity is associated with this account.</p></CardContent></Card>}
+          </div> : null}
+        </DialogContent>
+      </Dialog>
       <Table>
         <TableHeader>
           <TableRow>
