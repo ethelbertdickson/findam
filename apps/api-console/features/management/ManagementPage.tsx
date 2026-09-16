@@ -315,6 +315,7 @@ export function AdminUsersPage({
       >
         <DialogContent
           className="user-detail-popup !grid !grid-rows-[auto_minmax(0,1fr)] !gap-0 !overflow-hidden !p-0"
+          style={{ translate: 'none' }}
         >
           {selectedUser ? (
             <>
