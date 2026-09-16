@@ -314,16 +314,7 @@ export function AdminUsersPage({
         }}
       >
         <DialogContent
-          className="!fixed !grid !grid-rows-[auto_minmax(0,1fr)] !gap-0 !overflow-hidden !p-0"
-          style={{
-            width: 'min(96vw, 1800px)',
-            height: 'min(94dvh, 1100px)',
-            maxWidth: 'none',
-            maxHeight: '94dvh',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-          }}
+          className="user-detail-popup !grid !grid-rows-[auto_minmax(0,1fr)] !gap-0 !overflow-hidden !p-0"
         >
           {selectedUser ? (
             <>

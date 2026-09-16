@@ -2,6 +2,26 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+/* The shared dialog primitive applies compact centering styles. User details
+   need a roomy, viewport-centered workspace, so use equal viewport insets. */
+.user-detail-popup {
+  position: fixed !important;
+  inset: 3vh 2vw !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: 94vh !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  .user-detail-popup {
+    inset: 1vh 2vw !important;
+    max-height: 98vh !important;
+  }
+}
+
 .rail-tooltip::after {
   content: attr(data-tooltip);
   position: absolute;
