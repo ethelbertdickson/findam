@@ -52,6 +52,7 @@ export class AdminResourcesService {
             consumedSeconds: true,
             status: true,
             createdAt: true,
+            lastHeartbeatAt: true,
             completedAt: true,
           },
         },

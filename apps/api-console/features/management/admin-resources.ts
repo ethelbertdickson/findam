@@ -52,6 +52,7 @@ export interface ManagedUserDetails extends ManagedUser {
     consumedSeconds: number;
     status: string;
     createdAt: string;
+    lastHeartbeatAt: string | null;
     completedAt: string | null;
   }>;
   projectorProTrialDevices: Array<{ deviceId: string; grantedAt: string }>;

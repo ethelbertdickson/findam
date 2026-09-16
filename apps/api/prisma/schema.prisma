@@ -285,6 +285,7 @@ model ProjectorProSession {
   consumedSeconds Int                       @default(0)
   status          ProjectorProSessionStatus @default(ACTIVE)
   createdAt       DateTime                  @default(now())
+  lastHeartbeatAt DateTime?
   completedAt     DateTime?
 
   @@index([userId, status])

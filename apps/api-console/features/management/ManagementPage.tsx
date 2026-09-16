@@ -376,7 +376,7 @@ export function AdminUsersPage({
                       </section>
                       <div className="grid items-start gap-5 2xl:grid-cols-2">
                         <section className="flex h-[34rem] min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-                          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4"><div><h2 className="font-semibold">Transcription sessions</h2><p className="mt-1 text-xs text-muted-foreground">Usage is billed AI listening time, not desktop app uptime. Live requires recent heartbeats.</p></div><Badge variant="outline">{selectedUser.projectorProSessions.length} records</Badge></div>
+                          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4"><div><h2 className="font-semibold">Transcription sessions</h2><p className="mt-1 text-xs text-muted-foreground">Usage is billed AI listening time, not desktop app uptime. Live means a heartbeat within 30 seconds.</p></div><Badge variant="outline">{selectedUser.projectorProSessions.length} records</Badge></div>
                           <div className="min-h-0 flex-1 overflow-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Usage</th><th className="px-5 py-3 font-medium">Started</th><th className="px-5 py-3 font-medium">Ended</th><th className="px-5 py-3 font-medium">Device</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProSessions.length ? selectedUser.projectorProSessions.map((item) => {
                             const isLive = isRecentlyHeartbeatingSession(item, monitorNow);
                             const isStale = item.status === 'ACTIVE' && !isLive;
@@ -1130,7 +1130,7 @@ function getUserDisplayName(
 type ProjectorProSessionRecord =
   ManagedUserDetails['projectorProSessions'][number];
 
-const PROJECTORPRO_HEARTBEAT_GRACE_SECONDS = 15;
+const PROJECTORPRO_HEARTBEAT_LEASE_MS = 30_000;
 
 function elapsedSessionSeconds(
   session: ProjectorProSessionRecord,
@@ -1147,10 +1147,10 @@ function isRecentlyHeartbeatingSession(
   now: number,
 ) {
   if (session.status !== 'ACTIVE') return false;
-  const secondsSinceStart = elapsedSessionSeconds(session, now);
-  const secondsSinceLastRecordedHeartbeat =
-    secondsSinceStart - session.consumedSeconds;
-  return secondsSinceLastRecordedHeartbeat <= PROJECTORPRO_HEARTBEAT_GRACE_SECONDS;
+  const lastHeartbeatAt = session.lastHeartbeatAt
+    ? new Date(session.lastHeartbeatAt).getTime()
+    : new Date(session.createdAt).getTime() + session.consumedSeconds * 1000;
+  return now - lastHeartbeatAt <= PROJECTORPRO_HEARTBEAT_LEASE_MS;
 }
 
 function getDisplayedSessionUsageSeconds(
