@@ -197,18 +197,21 @@ export function AdminUsersPage({
     await openDetails(result.items[nextIndex]);
   }
 
-  const hasLiveSession = Boolean(
+  const hasActiveSession = Boolean(
     selectedUser?.projectorProSessions.some((session) => session.status === 'ACTIVE'),
   );
+  const hasLiveSession = Boolean(
+    selectedUser?.projectorProSessions.some((session) =>
+      isRecentlyHeartbeatingSession(session, monitorNow),
+    ),
+  );
   const totalConsumedSeconds = selectedUser?.projectorProSessions.reduce(
-    (sum, session) => sum + (session.status === 'ACTIVE'
-      ? Math.max(session.consumedSeconds, Math.floor((monitorNow - new Date(session.createdAt).getTime()) / 1000))
-      : session.consumedSeconds),
+    (sum, session) => sum + getDisplayedSessionUsageSeconds(session, monitorNow),
     0,
   ) ?? 0;
 
   useEffect(() => {
-    if (!selectedUser || !hasLiveSession) return;
+    if (!selectedUser || !hasActiveSession) return;
     let cancelled = false;
     const poll = async () => {
       try {
@@ -228,7 +231,7 @@ export function AdminUsersPage({
       window.clearInterval(pollTimer);
       window.clearInterval(clockTimer);
     };
-  }, [selectedUser?.id, hasLiveSession]);
+  }, [selectedUser?.id, hasActiveSession]);
 
   return (
     <ManagementLayout
@@ -321,10 +324,10 @@ export function AdminUsersPage({
             <>
               <header className="flex flex-wrap items-center justify-between gap-4 border-b bg-card px-5 py-4 pr-14 sm:px-8 sm:py-5 sm:pr-16">
                 <div className="flex min-w-0 items-center gap-4">
-                  <Avatar name={`${selectedUser.firstName} ${selectedUser.lastName}`} />
+                  <Avatar name={getUserDisplayName(selectedUser)} />
                   <div className="min-w-0">
                     <DialogTitle className="truncate text-xl font-semibold sm:text-2xl">
-                      {selectedUser.firstName} {selectedUser.lastName}
+                      {getUserDisplayName(selectedUser)}
                     </DialogTitle>
                     <DialogDescription className="mt-1 truncate">
                       {selectedUser.email} {selectedUser.phone ? `· ${selectedUser.phone}` : ''} · {titleCase(selectedUser.role)} · {selectedUser.isActive ? 'Active' : 'Suspended'}
@@ -351,7 +354,7 @@ export function AdminUsersPage({
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-200">
                           <div className="flex items-center gap-3">
                             <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-50" /><span className="relative inline-flex size-3 rounded-full bg-emerald-400" /></span>
-                            <div><p className="font-semibold">ProjectorPro session live</p><p className="text-xs text-emerald-100/70">Usage and balance are refreshing automatically</p></div>
+                            <div><p className="font-semibold">ProjectorPro session live</p><p className="text-xs text-emerald-100/70">Recent billing heartbeats detected · this is not desktop app uptime</p></div>
                           </div>
                           <p className="flex items-center gap-2 text-xs text-emerald-100/80"><RefreshCw className="size-3.5 animate-spin" /> Updated {detailsUpdatedAt ? formatDateTime(detailsUpdatedAt.toISOString()) : 'just now'}</p>
                         </div>
@@ -372,17 +375,18 @@ export function AdminUsersPage({
                         <DetailFact icon={Activity} label="Account activity" value={`${selectedUser.refreshTokens.length} recent login records · ${selectedUser.projectorProTrialDevices.length} trial devices`} />
                       </section>
                       <div className="grid items-start gap-5 2xl:grid-cols-2">
-                        <section className="overflow-hidden rounded-xl border bg-card">
-                          <div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Transcription sessions</h2><p className="mt-1 text-xs text-muted-foreground">Live elapsed time is estimated between server updates.</p></div><Badge variant="outline">{selectedUser.projectorProSessions.length} records</Badge></div>
-                          <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Usage</th><th className="px-5 py-3 font-medium">Started</th><th className="px-5 py-3 font-medium">Ended</th><th className="px-5 py-3 font-medium">Device</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProSessions.length ? selectedUser.projectorProSessions.map((item) => {
-                            const isLive = item.status === 'ACTIVE';
-                            const elapsed = isLive ? Math.max(item.consumedSeconds, Math.floor((monitorNow - new Date(item.createdAt).getTime()) / 1000)) : item.consumedSeconds;
-                            return <tr key={item.id} className={isLive ? 'bg-emerald-500/5' : ''}><td className="px-5 py-3"><Badge variant={isLive ? 'default' : 'outline'} className={isLive ? 'bg-emerald-600' : ''}>{isLive ? <><Radio className="mr-1 size-3" />Live</> : titleCase(item.status)}</Badge></td><td className="px-5 py-3 tabular-nums">{formatSeconds(elapsed)} <span className="text-xs text-muted-foreground">/ {formatSeconds(item.reservedSeconds)} reserved</span></td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{formatDateTime(item.createdAt)}</td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{item.completedAt ? formatDateTime(item.completedAt) : isLive ? 'In progress' : '—'}</td><td className="max-w-52 truncate px-5 py-3 font-mono text-xs text-muted-foreground" title={item.installationId}>{item.installationId}</td></tr>;
+                        <section className="flex h-[34rem] min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
+                          <div className="flex shrink-0 items-center justify-between gap-3 border-b px-5 py-4"><div><h2 className="font-semibold">Transcription sessions</h2><p className="mt-1 text-xs text-muted-foreground">Usage is billed AI listening time, not desktop app uptime. Live requires recent heartbeats.</p></div><Badge variant="outline">{selectedUser.projectorProSessions.length} records</Badge></div>
+                          <div className="min-h-0 flex-1 overflow-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Usage</th><th className="px-5 py-3 font-medium">Started</th><th className="px-5 py-3 font-medium">Ended</th><th className="px-5 py-3 font-medium">Device</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProSessions.length ? selectedUser.projectorProSessions.map((item) => {
+                            const isLive = isRecentlyHeartbeatingSession(item, monitorNow);
+                            const isStale = item.status === 'ACTIVE' && !isLive;
+                            const elapsed = getDisplayedSessionUsageSeconds(item, monitorNow);
+                            return <tr key={item.id} className={isLive ? 'bg-emerald-500/5' : ''}><td className="px-5 py-3"><Badge variant={isLive ? 'default' : 'outline'} className={isLive ? 'bg-emerald-600' : ''}>{isLive ? <><Radio className="mr-1 size-3" />Live</> : isStale ? 'Stale' : titleCase(item.status)}</Badge></td><td className="px-5 py-3 tabular-nums">{formatSeconds(elapsed)} <span className="text-xs text-muted-foreground">/ {formatSeconds(item.reservedSeconds)} reserved</span></td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{formatDateTime(item.createdAt)}</td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{item.completedAt ? formatDateTime(item.completedAt) : isLive ? 'In progress' : isStale ? 'No recent heartbeat' : '—'}</td><td className="max-w-52 truncate px-5 py-3 font-mono text-xs text-muted-foreground" title={item.installationId}>{item.installationId}</td></tr>;
                           }) : <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-muted-foreground">No ProjectorPro sessions.</td></tr>}</tbody></table></div>
                         </section>
-                        <section className="overflow-hidden rounded-xl border bg-card">
-                          <div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Credit ledger</h2><p className="mt-1 text-xs text-muted-foreground">Every reservation, release, purchase, and metered charge.</p></div><Badge variant="outline">{selectedUser.projectorProWallet?.entries?.length ?? 0} entries</Badge></div>
-                          <div className="max-h-[34rem] overflow-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Entry</th><th className="px-5 py-3 font-medium">Change</th><th className="px-5 py-3 font-medium">Description</th><th className="px-5 py-3 font-medium">Time</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProWallet?.entries?.length ? selectedUser.projectorProWallet.entries.map((item) => <tr key={item.id}><td className="px-5 py-3">{titleCase(item.type)}</td><td className={`px-5 py-3 font-semibold tabular-nums ${item.seconds < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{item.seconds > 0 ? '+' : ''}{formatSeconds(item.seconds)}</td><td className="max-w-72 px-5 py-3 text-muted-foreground">{item.description}</td><td className="whitespace-nowrap px-5 py-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</td></tr>) : <tr><td colSpan={4} className="px-5 py-10 text-center text-sm text-muted-foreground">No credit entries.</td></tr>}</tbody></table></div>
+                        <section className="flex h-[34rem] min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
+                          <div className="flex shrink-0 items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Credit ledger</h2><p className="mt-1 text-xs text-muted-foreground">Every reservation, release, purchase, and metered charge.</p></div><Badge variant="outline">{selectedUser.projectorProWallet?.entries?.length ?? 0} entries</Badge></div>
+                          <div className="min-h-0 flex-1 overflow-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Entry</th><th className="px-5 py-3 font-medium">Change</th><th className="px-5 py-3 font-medium">Description</th><th className="px-5 py-3 font-medium">Time</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProWallet?.entries?.length ? selectedUser.projectorProWallet.entries.map((item) => <tr key={item.id}><td className="px-5 py-3">{titleCase(item.type)}</td><td className={`px-5 py-3 font-semibold tabular-nums ${item.seconds < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{item.seconds > 0 ? '+' : ''}{formatSeconds(item.seconds)}</td><td className="max-w-72 px-5 py-3 text-muted-foreground">{item.description}</td><td className="whitespace-nowrap px-5 py-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</td></tr>) : <tr><td colSpan={4} className="px-5 py-10 text-center text-sm text-muted-foreground">No credit entries.</td></tr>}</tbody></table></div>
                         </section>
                       </div>
                       <section className="overflow-hidden rounded-xl border bg-card">
@@ -1113,6 +1117,50 @@ function ListingStatusBadge({ status }: { status: ManagedListing['status'] }) {
       {titleCase(status)}
     </Badge>
   );
+}
+
+function getUserDisplayName(
+  user: Pick<ManagedUser, 'firstName' | 'lastName' | 'email'>,
+) {
+  const fullName = `${user.firstName} ${user.lastName}`.trim();
+  if (fullName && fullName.toLowerCase() !== 'projector user') return fullName;
+  return user.email.split('@')[0] || user.email;
+}
+
+type ProjectorProSessionRecord =
+  ManagedUserDetails['projectorProSessions'][number];
+
+const PROJECTORPRO_HEARTBEAT_GRACE_SECONDS = 15;
+
+function elapsedSessionSeconds(
+  session: ProjectorProSessionRecord,
+  now: number,
+) {
+  return Math.max(
+    0,
+    Math.floor((now - new Date(session.createdAt).getTime()) / 1000),
+  );
+}
+
+function isRecentlyHeartbeatingSession(
+  session: ProjectorProSessionRecord,
+  now: number,
+) {
+  if (session.status !== 'ACTIVE') return false;
+  const secondsSinceStart = elapsedSessionSeconds(session, now);
+  const secondsSinceLastRecordedHeartbeat =
+    secondsSinceStart - session.consumedSeconds;
+  return secondsSinceLastRecordedHeartbeat <= PROJECTORPRO_HEARTBEAT_GRACE_SECONDS;
+}
+
+function getDisplayedSessionUsageSeconds(
+  session: ProjectorProSessionRecord,
+  now: number,
+) {
+  const recordedSeconds = Math.max(0, session.consumedSeconds);
+  return isRecentlyHeartbeatingSession(session, now)
+    ? Math.max(recordedSeconds, elapsedSessionSeconds(session, now))
+    : recordedSeconds;
 }
 
 function formatDate(value: string) {
