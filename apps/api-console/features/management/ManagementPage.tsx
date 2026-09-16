@@ -1,14 +1,21 @@
 import { type SyntheticEvent, useCallback, useEffect, useState } from 'react';
 import {
+  Activity,
+  CalendarDays,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Clock3,
+  CreditCard,
   House,
   Loader2,
+  Radio,
+  RefreshCw,
   Search,
   ShieldAlert,
   UserRoundCheck,
   Users,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -98,6 +105,8 @@ export function AdminUsersPage({
   );
   const [selectedUserIndex, setSelectedUserIndex] = useState(-1);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsUpdatedAt, setDetailsUpdatedAt] = useState<Date | null>(null);
+  const [monitorNow, setMonitorNow] = useState(Date.now());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,7 +180,9 @@ export function AdminUsersPage({
       setSelectedUserIndex(
         result?.items.findIndex((item) => item.id === user.id) ?? -1,
       );
-      setSelectedUser(await getManagedUserDetails(user.id));
+      const details = await getManagedUserDetails(user.id);
+      setSelectedUser(details);
+      setDetailsUpdatedAt(new Date());
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -185,6 +196,39 @@ export function AdminUsersPage({
     if (nextIndex < 0 || nextIndex >= result.items.length) return;
     await openDetails(result.items[nextIndex]);
   }
+
+  const hasLiveSession = Boolean(
+    selectedUser?.projectorProSessions.some((session) => session.status === 'ACTIVE'),
+  );
+  const totalConsumedSeconds = selectedUser?.projectorProSessions.reduce(
+    (sum, session) => sum + (session.status === 'ACTIVE'
+      ? Math.max(session.consumedSeconds, Math.floor((monitorNow - new Date(session.createdAt).getTime()) / 1000))
+      : session.consumedSeconds),
+    0,
+  ) ?? 0;
+
+  useEffect(() => {
+    if (!selectedUser || !hasLiveSession) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const fresh = await getManagedUserDetails(selectedUser.id);
+        if (!cancelled) {
+          setSelectedUser((current) => current?.id === fresh.id ? fresh : current);
+          setDetailsUpdatedAt(new Date());
+        }
+      } catch {
+        // Keep the last known data visible; the next poll can recover.
+      }
+    };
+    const pollTimer = window.setInterval(() => void poll(), 3000);
+    const clockTimer = window.setInterval(() => setMonitorNow(Date.now()), 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollTimer);
+      window.clearInterval(clockTimer);
+    };
+  }, [selectedUser?.id, hasLiveSession]);
 
   return (
     <ManagementLayout
@@ -263,146 +307,107 @@ export function AdminUsersPage({
       <Dialog
         open={Boolean(selectedUser)}
         onOpenChange={(open) => {
-          if (!open) setSelectedUser(null);
+          if (!open) {
+            setSelectedUser(null);
+            setDetailsUpdatedAt(null);
+          }
         }}
       >
-        <DialogContent className="max-h-[min(92vh,900px)] w-[calc(100vw-2rem)] max-w-none overflow-y-auto sm:w-[calc(100vw-3rem)] sm:max-w-[1200px] lg:w-[min(94vw,1400px)]">
-          {selectedUser ? <div className="space-y-5">
-            <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
-              <div>
-                <DialogTitle className="text-lg font-semibold">
-                  {selectedUser.firstName} {selectedUser.lastName}
-                </DialogTitle>
-                <DialogDescription>
-                  {selectedUser.email} · {titleCase(selectedUser.role)} ·{' '}
-                  {selectedUser.isActive ? 'Active' : 'Suspended'}
-                </DialogDescription>
-              </div>
-              <div className="flex items-center gap-2 sm:ml-auto">
-                <Button variant="outline" size="sm" disabled={selectedUserIndex <= 0 || detailsLoading} onClick={() => void moveDetails(-1)}>
-                  <ChevronLeft /> Previous
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  {selectedUserIndex + 1} of {result?.items.length ?? 0}
-                </span>
-                <Button variant="outline" size="sm" disabled={selectedUserIndex < 0 || selectedUserIndex >= (result?.items.length ?? 1) - 1 || detailsLoading} onClick={() => void moveDetails(1)}>
-                  Next <ChevronRight />
-                </Button>
-              </div>
-            </div>
-            {selectedUser.projectorProWallet || selectedUser.projectorProTrialAvailable || selectedUser.projectorProPurchases.length || selectedUser.projectorProSessions.length || selectedUser.projectorProTrialDevices.length ? <>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric
-                label="Balance"
-                value={formatSeconds(
-                  selectedUser.projectorProWallet?.balanceSeconds ??
-                    (selectedUser.projectorProTrialAvailable ? 3600 : 0),
-                )}
-              />
-              <Metric
-                label="Purchased"
-                value={formatSeconds(
-                  selectedUser.projectorProPurchases
-                    .filter((item) => item.status === 'SUCCESS')
-                    .reduce((sum, item) => sum + item.creditSeconds, 0),
-                )}
-              />
-              <Metric
-                label="Consumed"
-                value={formatSeconds(
-                  selectedUser.projectorProSessions.reduce(
-                    (sum, item) => sum + item.consumedSeconds,
-                    0,
-                  ),
-                )}
-              />
-              <Metric
-                label="Sessions"
-                value={String(selectedUser.projectorProSessions.length)}
-              />
-            </div>
-            <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-              <p>
-                <span className="font-medium text-foreground">Joined:</span>{' '}
-                {formatDate(selectedUser.createdAt)}
-              </p>
-              <p>
-                <span className="font-medium text-foreground">
-                  Latest login:
-                </span>{' '}
-                {selectedUser.refreshTokens[0]
-                  ? formatDateTime(selectedUser.refreshTokens[0].createdAt)
-                  : 'No session recorded'}
-              </p>
-              <p>
-                <span className="font-medium text-foreground">
-                  Trial granted:
-                </span>{' '}
-                {selectedUser.projectorProWallet?.trialGrantedAt
-                  ? formatDateTime(selectedUser.projectorProWallet.trialGrantedAt)
-                  : selectedUser.projectorProTrialAvailable
-                    ? 'Available — not claimed'
-                    : 'Not granted'}
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h3 className="mb-2 font-medium">Recent sessions</h3>
-                {selectedUser.projectorProSessions.length ? (
-                  selectedUser.projectorProSessions.slice(0, 8).map((item) => (
-                    <p key={item.id} className="text-xs text-muted-foreground">
-                      {titleCase(item.status)} · {item.consumedSeconds}s
-                      consumed of {item.reservedSeconds}s reserved · started{' '}
-                      {formatDateTime(item.createdAt)}
-                      {item.completedAt
-                        ? ` · ended ${formatDateTime(item.completedAt)}`
-                        : ''}
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    No ProjectorPro sessions.
-                  </p>
-                )}
-              </div>
-              <div>
-                <h3 className="mb-2 font-medium">Credit ledger</h3>
-                {(selectedUser.projectorProWallet?.entries ?? []).length ? (
-                  (selectedUser.projectorProWallet?.entries ?? [])
-                    .slice(0, 8)
-                    .map((item) => (
-                      <p
-                        key={item.id}
-                        className="text-xs text-muted-foreground"
-                      >
-                        {titleCase(item.type)} · {item.seconds > 0 ? '+' : ''}
-                        {item.seconds}s · {item.description} ·{' '}
-                        {formatDateTime(item.createdAt)}
-                      </p>
-                    ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    No credit entries.
-                  </p>
-                )}
-              </div>
-            </div>
-            <div>
-              <h3 className="mb-2 font-medium">Devices and activity</h3>
-              <p className="text-xs text-muted-foreground">
-                {selectedUser.projectorProTrialDevices.length} trial device(s) ·{' '}
-                {selectedUser.refreshTokens.length} recent login session
-                token(s) ·{' '}
-                {
-                  selectedUser.projectorProSessions.filter(
-                    (item) => item.status === 'EXPIRED',
-                  ).length
-                }{' '}
-                expired/failed session(s)
-              </p>
-            </div>
-            </> : <Card><CardContent className="pt-5"><p className="font-medium">Marketplace account</p><p className="text-sm text-muted-foreground">No ProjectorPro activity is associated with this account.</p></CardContent></Card>}
-          </div> : null}
+        <DialogContent
+          className="!fixed !grid !grid-rows-[auto_minmax(0,1fr)] !gap-0 !overflow-hidden !p-0"
+          style={{
+            width: 'min(96vw, 1800px)',
+            height: 'min(94dvh, 1100px)',
+            maxWidth: 'none',
+            maxHeight: '94dvh',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          {selectedUser ? (
+            <>
+              <header className="flex flex-wrap items-center justify-between gap-4 border-b bg-card px-5 py-4 pr-14 sm:px-8 sm:py-5 sm:pr-16">
+                <div className="flex min-w-0 items-center gap-4">
+                  <Avatar name={`${selectedUser.firstName} ${selectedUser.lastName}`} />
+                  <div className="min-w-0">
+                    <DialogTitle className="truncate text-xl font-semibold sm:text-2xl">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 truncate">
+                      {selectedUser.email} {selectedUser.phone ? `· ${selectedUser.phone}` : ''} · {titleCase(selectedUser.role)} · {selectedUser.isActive ? 'Active' : 'Suspended'}
+                    </DialogDescription>
+                  </div>
+                </div>
+                <nav className="flex items-center gap-2" aria-label="User detail navigation">
+                  <Button variant="outline" size="sm" disabled={selectedUserIndex <= 0 || detailsLoading} onClick={() => void moveDetails(-1)}>
+                    <ChevronLeft /> <span className="hidden sm:inline">Previous</span>
+                  </Button>
+                  <span className="min-w-16 text-center text-xs tabular-nums text-muted-foreground">
+                    {selectedUserIndex + 1} of {result?.items.length ?? 0}
+                  </span>
+                  <Button variant="outline" size="sm" disabled={selectedUserIndex < 0 || selectedUserIndex >= (result?.items.length ?? 1) - 1 || detailsLoading} onClick={() => void moveDetails(1)}>
+                    <span className="hidden sm:inline">Next</span> <ChevronRight />
+                  </Button>
+                </nav>
+              </header>
+              <main className="min-h-0 overflow-y-auto bg-background px-4 py-5 sm:px-8 sm:py-7">
+                <div className="mx-auto max-w-[1600px] space-y-6">
+                  {selectedUser.projectorProWallet || selectedUser.projectorProTrialAvailable || selectedUser.projectorProPurchases.length || selectedUser.projectorProSessions.length || selectedUser.projectorProTrialDevices.length ? (
+                    <>
+                      {hasLiveSession ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-200">
+                          <div className="flex items-center gap-3">
+                            <span className="relative flex size-3"><span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-50" /><span className="relative inline-flex size-3 rounded-full bg-emerald-400" /></span>
+                            <div><p className="font-semibold">ProjectorPro session live</p><p className="text-xs text-emerald-100/70">Usage and balance are refreshing automatically</p></div>
+                          </div>
+                          <p className="flex items-center gap-2 text-xs text-emerald-100/80"><RefreshCw className="size-3.5 animate-spin" /> Updated {detailsUpdatedAt ? formatDateTime(detailsUpdatedAt.toISOString()) : 'just now'}</p>
+                        </div>
+                      ) : null}
+                      <section aria-label="ProjectorPro account summary">
+                        <div className="mb-3 flex items-center gap-2"><CreditCard className="size-4 text-primary" /><h2 className="font-semibold">ProjectorPro usage</h2></div>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <Metric label="Available balance" value={formatSeconds(selectedUser.projectorProWallet?.balanceSeconds ?? (selectedUser.projectorProTrialAvailable ? 3600 : 0))} />
+                          <Metric label="Purchased" value={formatSeconds(selectedUser.projectorProPurchases.filter((item) => item.status === 'SUCCESS').reduce((sum, item) => sum + item.creditSeconds, 0))} />
+                          <Metric label="Consumed total" value={formatSeconds(totalConsumedSeconds)} />
+                          <Metric label="Sessions" value={String(selectedUser.projectorProSessions.length)} />
+                        </div>
+                      </section>
+                      <section className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <DetailFact icon={CalendarDays} label="Account created" value={formatDateTime(selectedUser.createdAt)} />
+                        <DetailFact icon={Clock3} label="Latest login" value={selectedUser.refreshTokens[0] ? formatDateTime(selectedUser.refreshTokens[0].createdAt) : 'No session recorded'} />
+                        <DetailFact icon={CreditCard} label="Trial status" value={selectedUser.projectorProWallet?.trialGrantedAt ? `Granted ${formatDateTime(selectedUser.projectorProWallet.trialGrantedAt)}` : selectedUser.projectorProTrialAvailable ? 'Available — not claimed' : 'Not granted'} />
+                        <DetailFact icon={Activity} label="Account activity" value={`${selectedUser.refreshTokens.length} recent login records · ${selectedUser.projectorProTrialDevices.length} trial devices`} />
+                      </section>
+                      <div className="grid items-start gap-5 2xl:grid-cols-2">
+                        <section className="overflow-hidden rounded-xl border bg-card">
+                          <div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Transcription sessions</h2><p className="mt-1 text-xs text-muted-foreground">Live elapsed time is estimated between server updates.</p></div><Badge variant="outline">{selectedUser.projectorProSessions.length} records</Badge></div>
+                          <div className="overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium">Usage</th><th className="px-5 py-3 font-medium">Started</th><th className="px-5 py-3 font-medium">Ended</th><th className="px-5 py-3 font-medium">Device</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProSessions.length ? selectedUser.projectorProSessions.map((item) => {
+                            const isLive = item.status === 'ACTIVE';
+                            const elapsed = isLive ? Math.max(item.consumedSeconds, Math.floor((monitorNow - new Date(item.createdAt).getTime()) / 1000)) : item.consumedSeconds;
+                            return <tr key={item.id} className={isLive ? 'bg-emerald-500/5' : ''}><td className="px-5 py-3"><Badge variant={isLive ? 'default' : 'outline'} className={isLive ? 'bg-emerald-600' : ''}>{isLive ? <><Radio className="mr-1 size-3" />Live</> : titleCase(item.status)}</Badge></td><td className="px-5 py-3 tabular-nums">{formatSeconds(elapsed)} <span className="text-xs text-muted-foreground">/ {formatSeconds(item.reservedSeconds)} reserved</span></td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{formatDateTime(item.createdAt)}</td><td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{item.completedAt ? formatDateTime(item.completedAt) : isLive ? 'In progress' : '—'}</td><td className="max-w-52 truncate px-5 py-3 font-mono text-xs text-muted-foreground" title={item.installationId}>{item.installationId}</td></tr>;
+                          }) : <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-muted-foreground">No ProjectorPro sessions.</td></tr>}</tbody></table></div>
+                        </section>
+                        <section className="overflow-hidden rounded-xl border bg-card">
+                          <div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="font-semibold">Credit ledger</h2><p className="mt-1 text-xs text-muted-foreground">Every reservation, release, purchase, and metered charge.</p></div><Badge variant="outline">{selectedUser.projectorProWallet?.entries?.length ?? 0} entries</Badge></div>
+                          <div className="max-h-[34rem] overflow-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="sticky top-0 bg-card text-xs text-muted-foreground"><tr><th className="px-5 py-3 font-medium">Entry</th><th className="px-5 py-3 font-medium">Change</th><th className="px-5 py-3 font-medium">Description</th><th className="px-5 py-3 font-medium">Time</th></tr></thead><tbody className="divide-y">{selectedUser.projectorProWallet?.entries?.length ? selectedUser.projectorProWallet.entries.map((item) => <tr key={item.id}><td className="px-5 py-3">{titleCase(item.type)}</td><td className={`px-5 py-3 font-semibold tabular-nums ${item.seconds < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{item.seconds > 0 ? '+' : ''}{formatSeconds(item.seconds)}</td><td className="max-w-72 px-5 py-3 text-muted-foreground">{item.description}</td><td className="whitespace-nowrap px-5 py-3 text-xs text-muted-foreground">{formatDateTime(item.createdAt)}</td></tr>) : <tr><td colSpan={4} className="px-5 py-10 text-center text-sm text-muted-foreground">No credit entries.</td></tr>}</tbody></table></div>
+                        </section>
+                      </div>
+                      <section className="overflow-hidden rounded-xl border bg-card">
+                        <div className="border-b px-5 py-4"><h2 className="font-semibold">Purchases and device trials</h2><p className="mt-1 text-xs text-muted-foreground">Payment fulfillment history and trial-device records.</p></div>
+                        <div className="grid divide-y xl:grid-cols-2 xl:divide-x xl:divide-y-0">
+                          <div className="p-5"><h3 className="mb-3 text-sm font-medium">Credit purchases</h3>{selectedUser.projectorProPurchases.length ? <div className="space-y-3">{selectedUser.projectorProPurchases.map((purchase, index) => <div key={`${purchase.createdAt}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"><div><p className="font-medium">{purchase.packageCode} · {formatSeconds(purchase.creditSeconds)}</p><p className="text-xs text-muted-foreground">Created {formatDateTime(purchase.createdAt)}{purchase.fulfilledAt ? ` · fulfilled ${formatDateTime(purchase.fulfilledAt)}` : ''}</p></div><Badge variant="outline">{titleCase(purchase.status)}</Badge></div>)}</div> : <p className="text-sm text-muted-foreground">No purchases recorded.</p>}</div>
+                          <div className="p-5"><h3 className="mb-3 text-sm font-medium">Trial devices</h3>{selectedUser.projectorProTrialDevices.length ? <div className="space-y-3">{selectedUser.projectorProTrialDevices.map((device) => <div key={device.deviceId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"><span className="break-all font-mono text-xs text-muted-foreground">{device.deviceId}</span><span className="text-xs text-muted-foreground">Granted {formatDateTime(device.grantedAt)}</span></div>)}</div> : <p className="text-sm text-muted-foreground">No trial device records.</p>}</div>
+                        </div>
+                      </section>
+                    </>
+                  ) : (
+                    <section className="rounded-xl border bg-card p-6 sm:p-8"><h2 className="text-lg font-semibold">Marketplace account</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">This account has no ProjectorPro wallet, billing activity, or transcription sessions. Its Findam account details are shown above.</p><div className="mt-5 grid gap-4 sm:grid-cols-2"><DetailFact icon={CalendarDays} label="Account created" value={formatDateTime(selectedUser.createdAt)} /><DetailFact icon={Clock3} label="Latest login" value={selectedUser.refreshTokens[0] ? formatDateTime(selectedUser.refreshTokens[0].createdAt) : 'No session recorded'} /></div></section>
+                  )}
+                </div>
+              </main>
+            </>
+          ) : null}
         </DialogContent>
       </Dialog>
       <Table>
@@ -1142,9 +1147,31 @@ function formatSeconds(seconds: number) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
+    <div className="min-h-24 rounded-xl border border-border bg-card px-4 py-4 sm:px-5">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">{value}</p>
+    </div>
+  );
+}
+
+function DetailFact({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-3">
+      <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-1 break-words text-sm font-medium">{value}</p>
+      </div>
     </div>
   );
 }
