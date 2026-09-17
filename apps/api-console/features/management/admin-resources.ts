@@ -153,6 +153,16 @@ export function getProjectorProDownloads(limit = 50) {
   return apiRequest<ProjectorProDownloadReport>(`/admin/downloads/projectorpro?limit=${limit}`);
 }
 
+export function uploadAppRelease(app: string, file: File, csrfToken: string) {
+  const body = new FormData();
+  body.append('file', file);
+  return apiRequest<{ app: string; filename: string; sizeBytes: number }>(`/admin/downloads/${encodeURIComponent(app)}/upload`, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': csrfToken },
+    body,
+  });
+}
+
 export function updateManagedUserStatus(
   userId: string,
   isActive: boolean,

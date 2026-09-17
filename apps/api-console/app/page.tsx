@@ -687,7 +687,7 @@ function Dashboard({
             csrfToken={session.csrfToken}
           />
         ) : activeView === 'downloads' ? (
-          <DownloadsPage recoverSession={recoverSession} />
+          <DownloadsPage recoverSession={recoverSession} csrfToken={session.csrfToken} />
         ) : activeView === 'agents' ? (
           <AdminAgentsPage
             recoverSession={recoverSession}
