@@ -30,4 +30,9 @@ export class AdminResourcesController {
   getListings(@Query() query: AdminListingsQueryDto) {
     return this.resources.getListings(query);
   }
+
+  @Get('downloads/projectorpro')
+  getProjectorProDownloads(@Query('limit') limit?: string) {
+    return this.resources.getProjectorProDownloads(Math.min(Math.max(Number(limit) || 50, 1), 200));
+  }
 }

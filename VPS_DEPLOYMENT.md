@@ -22,7 +22,21 @@ cp apps/web/.env.production.example apps/web/.env.production
 chmod 600 apps/api/.env.production apps/media/.env.production
 ```
 
-API requires `NODE_ENV`, `PORT`, `API_PREFIX`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRES_IN`, `CORS_ORIGIN`, `STORAGE_PROVIDER`, `MEDIA_SERVICE_URL`, `MEDIA_PUBLIC_URL`, `MEDIA_PROJECT_SLUG`, and `MEDIA_API_KEY`. Optional variables are Google OAuth, Geoapify, `MEDIA_FOLDER_PATH`, and throttle settings.
+Keep ProjectorPro provider secrets in one root-owned file on the VPS. Do not
+repeat them in `apps/api/.env.production`:
+
+```bash
+sudo install -d -m 700 /etc/findam
+sudo nano /etc/findam/projectorpro.env
+sudo chmod 600 /etc/findam/projectorpro.env
+```
+
+The file must contain the production values for `DEEPGRAM_API_KEY` and
+`PAYSTACK_SECRET_KEY`. The API systemd unit loads it after the app env file,
+so these values are available to NestJS without being stored in the Git
+working tree. Keep exactly one active definition of each variable.
+
+API requires `NODE_ENV`, `PORT`, `API_PREFIX`, `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRES_IN`, `CORS_ORIGIN`, `STORAGE_PROVIDER`, `MEDIA_SERVICE_URL`, `MEDIA_PUBLIC_URL`, `MEDIA_PROJECT_SLUG`, `MEDIA_API_KEY`, `DEEPGRAM_API_KEY`, and `PAYSTACK_SECRET_KEY`. The ProjectorPro provider secrets are supplied only by `/etc/findam/projectorpro.env`; optional variables are Google OAuth, Geoapify, `MEDIA_FOLDER_PATH`, and throttle settings.
 
 Use `STORAGE_PROVIDER=self-hosted`, `MEDIA_SERVICE_URL=http://127.0.0.1:3001`, and `MEDIA_PUBLIC_URL=https://api.grastadomham.com`.
 
@@ -75,6 +89,7 @@ Type=simple
 User=findam
 WorkingDirectory=/var/www/findam/apps/api
 EnvironmentFile=/var/www/findam/apps/api/.env.production
+EnvironmentFile=/etc/findam/projectorpro.env
 ExecStart=/usr/bin/node /var/www/findam/apps/api/dist/src/main.js
 Restart=on-failure
 RestartSec=5

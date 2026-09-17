@@ -6,17 +6,28 @@ import {
   HttpCode,
   Post,
   Req,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtAccessPayload } from '../auth/types/jwt-payload.type';
 import { ProjectorProService } from './projectorpro.service';
+import { ProjectorProDownloadsService } from './projectorpro-downloads.service';
+import type { Request, Response } from 'express';
 
 @ApiTags('projectorpro')
 @Controller('projectorpro')
 export class ProjectorProController {
-  constructor(private readonly service: ProjectorProService) {}
+  constructor(private readonly service: ProjectorProService, private readonly downloads: ProjectorProDownloadsService) {}
+
+  @Public()
+  @Get('downloads/stats')
+  publicDownloadStats() { return this.downloads.publicStats(); }
+
+  @Public()
+  @Get('downloads/latest')
+  downloadLatest(@Req() request: Request, @Res() response: Response) { return this.downloads.streamLatest(request, response); }
 
   @Public()
   @Get('credits/packages')

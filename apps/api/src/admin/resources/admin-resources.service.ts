@@ -11,6 +11,15 @@ import {
 export class AdminResourcesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getProjectorProDownloads(limit: number) {
+    const [summary, byCountry, recent] = await Promise.all([
+      this.prisma.downloadEvent.groupBy({ by: ['status'], where: { product: 'projectorpro' }, _count: { _all: true } }),
+      this.prisma.downloadEvent.groupBy({ by: ['countryCode', 'continent'], where: { product: 'projectorpro', countryCode: { not: null } }, _count: { _all: true }, orderBy: { _count: { countryCode: 'desc' } }, take: 50 }),
+      this.prisma.downloadEvent.findMany({ where: { product: 'projectorpro' }, orderBy: { startedAt: 'desc' }, take: limit, select: { id: true, version: true, platform: true, status: true, ipHash: true, countryCode: true, continent: true, region: true, userAgent: true, referrer: true, startedAt: true, completedAt: true } }),
+    ]);
+    return { summary, byCountry, recent };
+  }
+
   async getUserDetails(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },

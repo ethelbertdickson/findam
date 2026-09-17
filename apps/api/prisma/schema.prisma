@@ -187,6 +187,12 @@ enum ProjectorProSessionStatus {
   EXPIRED
 }
 
+enum DownloadEventStatus {
+  STARTED
+  COMPLETED
+  FAILED
+}
+
 // ---------------------------------------------------------------------------
 // Users & Agents
 // ---------------------------------------------------------------------------
@@ -290,6 +296,26 @@ model ProjectorProSession {
 
   @@index([userId, status])
   @@index([installationId])
+}
+
+model DownloadEvent {
+  id            String             @id @default(uuid())
+  product       String
+  version       String
+  platform      String?
+  status        DownloadEventStatus @default(STARTED)
+  ipHash        String?
+  countryCode   String?
+  continent     String?
+  region        String?
+  userAgent     String?
+  referrer      String?
+  startedAt     DateTime           @default(now())
+  completedAt   DateTime?
+
+  @@index([product, startedAt])
+  @@index([product, status, startedAt])
+  @@index([countryCode])
 }
 
 model RefreshToken {

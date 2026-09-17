@@ -143,6 +143,16 @@ export function getManagedListings(filters: ListingsFilters) {
   );
 }
 
+export interface ProjectorProDownloadReport {
+  summary: Array<{ status: string; _count: { _all: number } }>;
+  byCountry: Array<{ countryCode: string | null; continent: string | null; _count: { _all: number } }>;
+  recent: Array<{ id: string; version: string; platform: string | null; status: string; ipHash: string | null; countryCode: string | null; continent: string | null; region: string | null; startedAt: string; completedAt: string | null }>;
+}
+
+export function getProjectorProDownloads(limit = 50) {
+  return apiRequest<ProjectorProDownloadReport>(`/admin/downloads/projectorpro?limit=${limit}`);
+}
+
 export function updateManagedUserStatus(
   userId: string,
   isActive: boolean,

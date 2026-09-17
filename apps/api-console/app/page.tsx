@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  Download,
   Database,
   FolderKanban,
   House,
@@ -59,6 +60,7 @@ import { MediaLibraryPage } from '@/features/media/MediaLibraryPage';
 import { MediaProjectsPage } from '@/features/media/MediaProjectsPage';
 import { AdminLocationsPage } from '@/features/locations/LocationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { DownloadsPage } from '@/features/management/DownloadsPage';
 
 type ConsoleView =
   | 'overview'
@@ -71,11 +73,13 @@ type ConsoleView =
   | 'tasks'
   | 'projects'
   | 'media'
-  | 'audit';
+  | 'audit'
+  | 'downloads';
 
 const navigation = [
   { label: 'Overview', icon: LayoutDashboard, view: 'overview', enabled: true },
   { label: 'Users', icon: Users, view: 'users', enabled: true },
+  { label: 'Downloads', icon: Download, view: 'downloads', enabled: true },
   { label: 'Listings', icon: House, view: 'listings', enabled: true },
   {
     label: 'API monitoring',
@@ -682,6 +686,8 @@ function Dashboard({
             recoverSession={recoverSession}
             csrfToken={session.csrfToken}
           />
+        ) : activeView === 'downloads' ? (
+          <DownloadsPage recoverSession={recoverSession} />
         ) : activeView === 'agents' ? (
           <AdminAgentsPage
             recoverSession={recoverSession}
@@ -859,7 +865,8 @@ function readConsoleView(hash: string): ConsoleView {
     view === 'tasks' ||
     view === 'projects' ||
     view === 'media' ||
-    view === 'audit'
+    view === 'audit' ||
+    view === 'downloads'
     ? view
     : 'overview';
 }
