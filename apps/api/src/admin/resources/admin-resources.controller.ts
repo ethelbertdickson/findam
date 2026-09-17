@@ -40,7 +40,7 @@ export class AdminResourcesController {
     return this.resources.getProjectorProDownloads(Math.min(Math.max(Number(limit) || 50, 1), 200));
   }
 
-  @Post('downloads/:app/upload')
+  @Post('downloads/:app/:platform/upload')
   @UseGuards(AdminCsrfGuard)
   @UseInterceptors(FileInterceptor('file', {
     limits: { fileSize: 1024 * 1024 * 1024 },
@@ -53,8 +53,8 @@ export class AdminResourcesController {
       filename: (_request, file, callback) => callback(null, `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`),
     }),
   }))
-  uploadAppRelease(@Param('app') app: string, @UploadedFile() file?: { path: string; originalname: string }) {
+  uploadAppRelease(@Param('app') app: string, @Param('platform') platform: string, @UploadedFile() file?: { path: string; originalname: string }) {
     if (!file?.path) throw new BadRequestException('A release file is required.');
-    return this.resources.uploadAppRelease(app, file);
+    return this.resources.uploadAppRelease(app, platform, file);
   }
 }

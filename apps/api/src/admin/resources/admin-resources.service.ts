@@ -14,18 +14,19 @@ import {
 export class AdminResourcesService {
   constructor(private readonly prisma: PrismaService, private readonly config: ConfigService) {}
 
-  async uploadAppRelease(app: string, file: { path: string; originalname: string }) {
+  async uploadAppRelease(app: string, platform: string, file: { path: string; originalname: string }) {
     const appSlug = app.trim().toLowerCase();
-    if (!/^[a-z0-9-]+$/.test(appSlug)) throw new BadRequestException('Invalid app folder.');
+    const platformSlug = platform.trim().toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(appSlug) || !['windows', 'linux', 'macos'].includes(platformSlug)) throw new BadRequestException('Invalid app or platform.');
     const root = resolve(this.config.get<string>('DOWNLOAD_ROOT') ?? '/var/lib/findam/downloads');
-    const directory = resolve(root, appSlug);
+    const directory = resolve(root, appSlug, platformSlug);
     if (!directory.startsWith(`${root}/`)) throw new BadRequestException('Invalid app folder.');
     await mkdir(directory, { recursive: true });
-    const targetName = appSlug === 'projectorpro' ? 'ProjectorPro-latest.zip' : basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetName = appSlug === 'projectorpro' ? `ProjectorPro-latest.${basename(file.originalname).split('.').pop()?.toLowerCase() || 'zip'}` : basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
     const target = join(directory, targetName);
     await rename(file.path, target);
     const details = await stat(target);
-    return { app: appSlug, filename: targetName, sizeBytes: details.size, path: target };
+    return { app: appSlug, platform: platformSlug, filename: targetName, sizeBytes: details.size, path: target };
   }
 
   async getProjectorProDownloads(limit: number) {

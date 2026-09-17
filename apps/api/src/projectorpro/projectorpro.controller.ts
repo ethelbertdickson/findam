@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   HttpCode,
+  Param,
   Post,
   Req,
   Res,
@@ -26,8 +27,8 @@ export class ProjectorProController {
   publicDownloadStats() { return this.downloads.publicStats(); }
 
   @Public()
-  @Get('downloads/latest')
-  downloadLatest(@Req() request: Request, @Res() response: Response) { return this.downloads.streamLatest(request, response); }
+  @Get('downloads/:platform')
+  downloadLatest(@Req() request: Request, @Res() response: Response, @Param('platform') platform: string) { return this.downloads.streamLatest(request, response, platform); }
 
   @Public()
   @Get('credits/packages')

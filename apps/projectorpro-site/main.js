@@ -78,6 +78,15 @@ fetch("/api/v1/projectorpro/downloads/stats")
   .then((stats) => {
     if (stats && Number.isFinite(stats.downloadsStarted)) {
       document.querySelector("#downloads-started").textContent = Number(stats.downloadsStarted).toLocaleString();
+      for (const platform of ["windows", "linux", "macos"]) {
+        const link = [...document.querySelectorAll("a.button-download")].find((candidate) => candidate.href.endsWith(`/projectorpro/${platform}`));
+        if (link && !stats.availablePlatforms?.includes(platform)) {
+          link.classList.add("is-unavailable");
+          link.setAttribute("aria-disabled", "true");
+          link.removeAttribute("href");
+          link.textContent = `${platform[0].toUpperCase()}${platform.slice(1)} — no release yet`;
+        }
+      }
     }
   })
   .catch(() => undefined);
