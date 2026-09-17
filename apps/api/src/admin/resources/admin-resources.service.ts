@@ -18,11 +18,17 @@ export class AdminResourcesService {
     const appSlug = app.trim().toLowerCase();
     const platformSlug = platform.trim().toLowerCase();
     if (!/^[a-z0-9-]+$/.test(appSlug) || !['windows', 'linux', 'macos'].includes(platformSlug)) throw new BadRequestException('Invalid app or platform.');
+    const originalName = basename(file.originalname);
+    const lowerName = originalName.toLowerCase();
+    const allowed = platformSlug === 'windows' ? ['.exe', '.msi', '.zip'] : platformSlug === 'linux' ? ['.deb', '.appimage', '.tar.gz', '.zip'] : ['.dmg', '.pkg', '.zip'];
+    if (!allowed.some((extension) => lowerName.endsWith(extension))) {
+      throw new BadRequestException(`Unsupported ${platformSlug} release file. Allowed: ${allowed.join(', ')}`);
+    }
     const root = resolve(this.config.get<string>('DOWNLOAD_ROOT') ?? '/var/lib/findam/downloads');
     const directory = resolve(root, appSlug, platformSlug);
     if (!directory.startsWith(`${root}/`)) throw new BadRequestException('Invalid app folder.');
     await mkdir(directory, { recursive: true });
-    const targetName = appSlug === 'projectorpro' ? `ProjectorPro-latest.${basename(file.originalname).split('.').pop()?.toLowerCase() || 'zip'}` : basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetName = appSlug === 'projectorpro' ? `ProjectorPro-latest.${lowerName.endsWith('.tar.gz') ? 'tar.gz' : lowerName.split('.').pop() || 'zip'}` : originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const target = join(directory, targetName);
     await rename(file.path, target);
     const details = await stat(target);
