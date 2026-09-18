@@ -46,6 +46,10 @@ export function ListingCard({
             source={{ uri: mainImage }}
             style={styles.image}
             contentFit="cover"
+            cachePolicy="none"
+            onError={(error) => {
+              if (__DEV__) console.warn("Findam listing image failed", mainImage, error.error);
+            }}
           />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]} />

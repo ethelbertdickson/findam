@@ -7,6 +7,7 @@ export interface ProfessionalFilters {
   countryId?: string;
   stateId?: string;
   cityId?: string;
+  createdAfter?: string;
 }
 
 export async function fetchProfessionals(filters: ProfessionalFilters = {}) {

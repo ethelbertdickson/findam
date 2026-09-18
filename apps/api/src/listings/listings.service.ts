@@ -43,6 +43,7 @@ export class ListingsService {
     const where: Prisma.ListingWhereInput = {
       status: ListingStatus.ACTIVE,
       deletedAt: null,
+      ...(query.createdAfter && { createdAt: { gte: new Date(query.createdAfter) } }),
       ...(query.type && { type: query.type }),
       ...(query.countryId && { countryId: query.countryId }),
       ...(query.stateId && { stateId: query.stateId }),
@@ -156,9 +157,22 @@ export class ListingsService {
     return rows.map((row) => serialize(row.listing));
   }
 
-  async mine(ownerId: string) {
+  async mine(ownerId: string, query: ListingsQueryDto = new ListingsQueryDto()) {
+    const searchTerms = query.q?.trim().split(/\s+/).filter(Boolean) ?? [];
     const items = await this.prisma.listing.findMany({
-      where: { ownerId, deletedAt: null },
+      where: {
+        ownerId,
+        deletedAt: null,
+        ...(query.type && { type: query.type }),
+        ...(query.createdAfter && { createdAt: { gte: new Date(query.createdAfter) } }),
+        ...(searchTerms.length
+          ? { AND: searchTerms.map((term) => ({ OR: [
+            { title: { contains: term, mode: 'insensitive' as const } },
+            { description: { contains: term, mode: 'insensitive' as const } },
+            { formattedAddress: { contains: term, mode: 'insensitive' as const } },
+          ] })) }
+          : {}),
+      },
       include: listingInclude,
       orderBy: { createdAt: 'desc' },
     });

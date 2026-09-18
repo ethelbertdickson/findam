@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Image, Linking } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   Pressable,
   ScrollView,
@@ -22,23 +22,56 @@ const CATEGORIES: { label: string; value?: ProfessionalCategory }[] = [
   { label: "Electricians", value: "ELECTRICIAN" },
   { label: "Carpenters", value: "CARPENTER" },
   { label: "Painters", value: "PAINTER" },
+  { label: "Tilers", value: "TILER" },
+  { label: "Bricklayers", value: "BRICKLAYER" },
+  { label: "Roofers", value: "ROOFER" },
+  { label: "HVAC technicians", value: "HVAC_TECHNICIAN" },
   { label: "Engineers", value: "ENGINEER" },
   { label: "Architects", value: "ARCHITECT" },
+  { label: "Surveyors", value: "SURVEYOR" },
+  { label: "Quantity surveyors", value: "QUANTITY_SURVEYOR" },
+  { label: "Interior designers", value: "INTERIOR_DESIGNER" },
+  { label: "Property managers", value: "PROPERTY_MANAGER" },
+  { label: "Suppliers", value: "SUPPLIER" },
   { label: "Other", value: "OTHER" },
+];
+const ARTISAN_CATEGORIES = new Set<ProfessionalCategory>([
+  "PLUMBER", "ELECTRICIAN", "TILER", "BRICKLAYER", "CARPENTER", "PAINTER",
+  "ROOFER", "HVAC_TECHNICIAN", "SUPPLIER", "OTHER",
+]);
+const PROFESSIONAL_CATEGORIES = new Set<ProfessionalCategory>([
+  "ENGINEER", "ARCHITECT", "SURVEYOR", "QUANTITY_SURVEYOR", "INTERIOR_DESIGNER", "PROPERTY_MANAGER",
+]);
+const POSTED = [
+  { label: "Any time" },
+  { label: "Past week", days: 7 },
+  { label: "Past month", days: 30 },
 ];
 
 export default function ProfessionalsScreen() {
+  const params = useLocalSearchParams<{ group?: string }>();
+  const group = Array.isArray(params.group) ? params.group[0] : params.group;
+  const groupCategories = group === "artisans"
+    ? CATEGORIES.filter((item) => !item.value || ARTISAN_CATEGORIES.has(item.value))
+    : group === "professionals"
+      ? CATEGORIES.filter((item) => !item.value || PROFESSIONAL_CATEGORIES.has(item.value))
+      : CATEGORIES;
   const [q, setQ] = React.useState("");
   const [category, setCategory] = React.useState<
     ProfessionalCategory | undefined
   >();
+  const [days, setDays] = React.useState<number | undefined>();
   const {
     data = [],
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["professionals", q, category],
-    queryFn: () => fetchProfessionals({ q: q.trim() || undefined, category }),
+    queryKey: ["professionals", q, category, days, group],
+    queryFn: () => fetchProfessionals({
+      q: q.trim() || undefined,
+      category,
+      createdAfter: days ? new Date(Date.now() - days * 86400000).toISOString() : undefined,
+    }),
   });
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -46,7 +79,7 @@ export default function ProfessionalsScreen() {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text} />
         </Pressable>
-        <Text style={styles.title}>Find a professional</Text>
+        <Text style={styles.title}>{group === "artisans" ? "Find an artisan" : group === "professionals" ? "Find a professional" : "Find a professional or artisan"}</Text>
         <View style={{ width: 24 }} />
       </View>
       <TextInput
@@ -62,7 +95,7 @@ export default function ProfessionalsScreen() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chips}
       >
-        {CATEGORIES.map((item) => (
+        {groupCategories.map((item) => (
           <Pressable
             key={item.label}
             onPress={() => setCategory(item.value)}
@@ -76,6 +109,22 @@ export default function ProfessionalsScreen() {
             >
               {item.label}
             </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <ScrollView
+        horizontal
+        style={{ flexGrow: 0 }}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chips}
+      >
+        {POSTED.map((item) => (
+          <Pressable
+            key={item.label}
+            onPress={() => setDays(item.days)}
+            style={[styles.chip, days === item.days && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, days === item.days && styles.chipTextActive]}>{item.label}</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -93,6 +142,7 @@ export default function ProfessionalsScreen() {
           const firstName = profile.user?.firstName || "";
           const lastName = profile.user?.lastName || "";
           const phone = profile.whatsapp || profile.phone || profile.user?.phone;
+          const email = profile.email || profile.user?.email;
           return (
             <View key={profile.id} style={styles.card}>
               <View style={styles.cardTop}>
@@ -119,13 +169,13 @@ export default function ProfessionalsScreen() {
                   .filter(Boolean)
                   .join(", ") || "Service area available"}
               </Text>
-              {phone && (
+              {(phone || email) && (
                 <Pressable
                   style={styles.contact}
-                  onPress={() => Linking.openURL(`tel:${phone}`)}
+                  onPress={() => Linking.openURL(phone ? `tel:${phone}` : `mailto:${email}`)}
                 >
-                  <Ionicons name="call-outline" size={16} color="#fff" />
-                  <Text style={styles.contactText}>Contact</Text>
+                  <Ionicons name={phone ? "call-outline" : "mail-outline"} size={16} color="#fff" />
+                  <Text style={styles.contactText}>{phone || email}</Text>
                 </Pressable>
               )}
             </View>

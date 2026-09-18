@@ -36,14 +36,25 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.appName}>Find Am</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search Find Am"
-          onPress={() => setSearchOpen(true)}
-          style={styles.searchButton}
-        >
-          <Ionicons name="search" size={22} color={COLORS.text} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Discover"
+            onPress={() => router.push("/discover")}
+            style={styles.discoverButton}
+          >
+            <Ionicons name="sparkles-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.discoverText}>Discover</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search Find Am"
+            onPress={() => setSearchOpen(true)}
+            style={styles.searchButton}
+          >
+            <Ionicons name="search" size={22} color={COLORS.text} />
+          </Pressable>
+        </View>
       </View>
       {searchFilters ? (
         <View style={styles.searchResults}>
@@ -115,6 +126,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   appName: {
     fontSize: 24,
     fontWeight: "800",
@@ -130,5 +142,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  discoverButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  discoverText: { color: COLORS.primary, fontSize: 12, fontWeight: "800" },
   searchResults: { flex: 1 },
 });

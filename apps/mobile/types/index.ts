@@ -217,6 +217,7 @@ export interface ProfessionalProfile {
   userId: string;
   displayName?: string | null;
   category: ProfessionalCategory;
+  email?: string | null;
   specialties: string[];
   bio?: string | null;
   phone?: string | null;
@@ -227,10 +228,11 @@ export interface ProfessionalProfile {
   isVerified: boolean;
   averageRating: number;
   reviewCount: number;
-  user?: { firstName: string; lastName: string; avatarUrl?: string | null; phone?: string | null } | null;
+  user?: { firstName: string; lastName: string; avatarUrl?: string | null; phone?: string | null; email?: string | null } | null;
   country?: { id: string; name: string; code: string } | null;
   state?: { id: string; name: string } | null;
   city?: { id: string; name: string } | null;
+  createdAt?: string;
 }
 
 export interface AgentRating {

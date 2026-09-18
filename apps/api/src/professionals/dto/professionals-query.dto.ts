@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import { ProfessionalCategory } from '@prisma/client';
 
 export class ProfessionalsQueryDto {
@@ -8,4 +8,5 @@ export class ProfessionalsQueryDto {
   @ApiPropertyOptional() @IsOptional() @IsString() countryId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() stateId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() cityId?: string;
+  @ApiPropertyOptional({ description: 'Only profiles created on or after this ISO timestamp' }) @IsOptional() @IsDateString() createdAfter?: string;
 }

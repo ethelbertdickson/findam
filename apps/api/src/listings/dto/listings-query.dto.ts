@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsDateString,
   IsEnum,
   IsInt,
   IsNumber,
@@ -21,6 +22,10 @@ import {
 
 export class ListingsQueryDto {
   @ApiPropertyOptional() @IsOptional() @IsString() q?: string;
+  @ApiPropertyOptional({ description: 'Only listings created on or after this ISO timestamp' })
+  @IsOptional()
+  @IsDateString()
+  createdAfter?: string;
   @ApiPropertyOptional({ enum: ListingType })
   @IsOptional()
   @IsEnum(ListingType)

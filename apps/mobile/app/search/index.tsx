@@ -33,6 +33,11 @@ import type {
 import { formatAmountInput, parseAmountInput } from "../../utils/currency";
 
 type Option = { label: string; value: string };
+const POSTED_OPTIONS: Option[] = [
+  { label: "Any time", value: "" },
+  { label: "Past week", value: "7" },
+  { label: "Past month", value: "30" },
+];
 
 const PROPERTY_TYPES: Option[] = [
   { label: "Any property type", value: "" },
@@ -164,6 +169,7 @@ export default function SearchScreen() {
   const [condition, setCondition] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [postedWithin, setPostedWithin] = useState("");
   const [searchLocation, setSearchLocation] =
     useState<LocationSuggestion | null>(null);
   const [searchLocationText, setSearchLocationText] = useState("");
@@ -212,6 +218,9 @@ export default function SearchScreen() {
           : undefined,
       minPrice: parsedMinPrice,
       maxPrice: parsedMaxPrice,
+      createdAfter: postedWithin
+        ? new Date(Date.now() - Number(postedWithin) * 24 * 60 * 60 * 1000).toISOString()
+        : undefined,
       latitude: searchLocation?.latitude,
       longitude: searchLocation?.longitude,
       radiusKm: searchLocation ? radiusKm : undefined,
@@ -379,6 +388,14 @@ export default function SearchScreen() {
       <View style={styles.grid}>
         <View style={styles.priceInputWrap}><TextInput style={styles.priceInput} value={minPrice} onChangeText={(value) => setMinPrice(formatAmountInput(value))} placeholder="Min. price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />{minPrice ? <Pressable accessibilityLabel="Clear minimum price" onPress={() => setMinPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}</View>
         <View style={styles.priceInputWrap}><TextInput style={styles.priceInput} value={maxPrice} onChangeText={(value) => setMaxPrice(formatAmountInput(value))} placeholder="Max. price (₦)" placeholderTextColor={COLORS.muted} keyboardType="numeric" />{maxPrice ? <Pressable accessibilityLabel="Clear maximum price" onPress={() => setMaxPrice("")}><Ionicons name="close-circle" size={19} color={COLORS.muted} /></Pressable> : null}</View>
+      </View>
+      <View style={styles.grid}>
+        <SelectField
+          label="Posted"
+          value={postedWithin}
+          options={POSTED_OPTIONS}
+          onChange={setPostedWithin}
+        />
       </View>
       <Button label="Search" onPress={search} loading={results.isFetching} />
       {submitted && (

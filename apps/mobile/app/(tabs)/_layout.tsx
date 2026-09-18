@@ -1,6 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import type { ColorValue } from "react-native";
 import { COLORS } from "../../constants";
+
+const tabIcon = (name: React.ComponentProps<typeof Ionicons>["name"]) =>
+  ({ color, size }: { color: ColorValue; size: number }) => (
+    <Ionicons name={name} size={size} color={color} />
+  );
 
 export default function TabsLayout() {
   return (
@@ -9,6 +15,10 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.muted,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+        },
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
@@ -20,54 +30,43 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon("home-outline"),
         }}
       />
       <Tabs.Screen
         name="household"
         options={{
           title: "Household",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon("cube-outline"),
         }}
       />
       <Tabs.Screen
         name="properties"
         options={{
           title: "Properties",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon("business-outline"),
         }}
       />
       <Tabs.Screen
         name="land"
         options={{
           title: "Land",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon("map-outline"),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
-          title: "Discover",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles-outline" size={size} color={color} />
-          ),
+          // Discovery remains a full screen, but is opened from the Home
+          // header so the bottom navigation stays focused and uncluttered.
+          href: null,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          tabBarIcon: tabIcon("settings-outline"),
         }}
       />
     </Tabs>

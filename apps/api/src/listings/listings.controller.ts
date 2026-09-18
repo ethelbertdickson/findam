@@ -42,8 +42,11 @@ export class ListingsController {
   @Public() @Get('listings/:id') findOne(@Param('id') id: string) {
     return this.listings.findOne(id);
   }
-  @Get('my-listings') mine(@CurrentUser() user: JwtAccessPayload) {
-    return this.listings.mine(user.sub);
+  @Get('my-listings') mine(
+    @CurrentUser() user: JwtAccessPayload,
+    @Query() query: ListingsQueryDto,
+  ) {
+    return this.listings.mine(user.sub, query);
   }
   @Post('listings') create(
     @CurrentUser() user: JwtAccessPayload,

@@ -1,5 +1,8 @@
+// Keep local development overridable, but never fall back to localhost on a
+// phone or browser build where localhost means the device/browser itself.
 export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL?.trim() ||
+  "https://api.grastadomhan.com/api/v1";
 
 export const GOOGLE_WEB_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";

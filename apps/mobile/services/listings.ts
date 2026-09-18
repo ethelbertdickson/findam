@@ -32,6 +32,7 @@ export interface ListingFilters {
   longitude?: number;
   radiusKm?: number;
   isCoRenting?: boolean;
+  createdAfter?: string;
 }
 
 export async function fetchListings(filters: ListingFilters = {}) {
@@ -108,7 +109,7 @@ export async function uploadImage(uri: string) {
   return data.url;
 }
 
-export async function fetchMyListings() {
-  const { data } = await apiClient.get<Listing[]>("/my-listings");
+export async function fetchMyListings(filters: Pick<ListingFilters, "q" | "type" | "createdAfter"> = {}) {
+  const { data } = await apiClient.get<Listing[]>("/my-listings", { params: filters });
   return data;
 }

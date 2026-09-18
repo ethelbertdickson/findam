@@ -13,7 +13,7 @@ export class ServicesService {
   findAll(query: ServicesQueryDto) {
     const search = query.q?.trim();
     return this.prisma.serviceListing.findMany({
-      where: { status: query.status ?? 'ACTIVE', ...(query.category ? { category: query.category } : {}), ...(search ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { description: { contains: search, mode: 'insensitive' } }, { serviceAreas: { has: search } }] } : {}) },
+      where: { status: query.status ?? 'ACTIVE', ...(query.category ? { category: query.category } : {}), ...(query.createdAfter ? { createdAt: { gte: new Date(query.createdAfter) } } : {}), ...(search ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { description: { contains: search, mode: 'insensitive' } }, { serviceAreas: { has: search } }] } : {}) },
       include, orderBy: { createdAt: 'desc' }, take: 100,
     });
   }
@@ -38,6 +38,6 @@ export class ServicesService {
       if (!own) throw new NotFoundException('Create a professional profile first');
       providerId = own.id;
     }
-    return this.prisma.serviceListing.create({ data: { providerId, createdById: userId, title: dto.title.trim(), description: dto.description.trim(), category: dto.category, serviceAreas: dto.serviceAreas ?? [], priceFrom: dto.priceFrom, priceTo: dto.priceTo, }, include });
+    return this.prisma.serviceListing.create({ data: { providerId, createdById: userId, title: dto.title.trim(), description: dto.description.trim(), category: dto.category, phone: dto.phone.trim(), email: dto.email?.trim() || null, serviceAreas: dto.serviceAreas ?? [], priceFrom: dto.priceFrom, priceTo: dto.priceTo, }, include });
   }
 }

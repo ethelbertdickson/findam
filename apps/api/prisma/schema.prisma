@@ -440,6 +440,7 @@ model ProfessionalProfile {
   managedBy     User?                @relation("ProfessionalManager", fields: [managedById], references: [id], onDelete: SetNull)
   displayName   String?
   category      ProfessionalCategory
+  email         String?
   specialties   String[]             @default([])
   bio           String?
   phone         String?
@@ -475,6 +476,8 @@ model ServiceListing {
   title        String
   description  String
   category     ProfessionalCategory
+  phone        String?
+  email        String?
   serviceAreas String[]             @default([])
   priceFrom    Decimal?             @db.Decimal(14, 2)
   priceTo      Decimal?             @db.Decimal(14, 2)

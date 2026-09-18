@@ -34,6 +34,7 @@ export default function NewProfessionalScreen() {
   const [category, setCategory] = useState<ProfessionalCategory>("PLUMBER");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [areas, setAreas] = useState("");
   const [photo, setPhoto] = useState<string>();
@@ -52,6 +53,7 @@ export default function NewProfessionalScreen() {
         category,
         displayName: name.trim(),
         phone: phone.trim(),
+        email: email.trim() || undefined,
         bio: bio.trim() || undefined,
         serviceAreas: areas
           .split(",")
@@ -112,6 +114,15 @@ export default function NewProfessionalScreen() {
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Email (optional)"
+          placeholderTextColor={COLORS.muted}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
         />
         <TextInput
           style={[styles.input, styles.multiline]}

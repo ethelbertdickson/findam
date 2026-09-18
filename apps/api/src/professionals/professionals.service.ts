@@ -5,7 +5,7 @@ import { ProfessionalProfileDto } from './dto/professional-profile.dto';
 import { ProfessionalsQueryDto } from './dto/professionals-query.dto';
 
 const include = {
-  user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, phone: true } },
+  user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, phone: true, email: true } },
   country: { select: { id: true, name: true, code: true } },
   state: { select: { id: true, name: true } },
   city: { select: { id: true, name: true } },
@@ -24,6 +24,7 @@ export class ProfessionalsService {
         ...(query.countryId ? { countryId: query.countryId } : {}),
         ...(query.stateId ? { stateId: query.stateId } : {}),
         ...(query.cityId ? { cityId: query.cityId } : {}),
+        ...(query.createdAfter ? { createdAt: { gte: new Date(query.createdAfter) } } : {}),
         ...(search ? { OR: [{ displayName: { contains: search, mode: 'insensitive' } }, { bio: { contains: search, mode: 'insensitive' } }, { specialties: { has: search } }] } : {}),
       },
       include,
@@ -48,6 +49,7 @@ export class ProfessionalsService {
     const data = {
       category: dto.category,
       displayName: dto.displayName?.trim() || null,
+      email: dto.email?.trim() || null,
       bio: dto.bio?.trim() || null,
       specialties: dto.specialties ?? [],
       phone: dto.phone?.trim() || null,
@@ -71,6 +73,7 @@ export class ProfessionalsService {
     return {
       category: dto.category,
       displayName: dto.displayName?.trim() || null,
+      email: dto.email?.trim() || null,
       bio: dto.bio?.trim() || null,
       specialties: dto.specialties ?? [],
       phone: dto.phone?.trim() || null,

@@ -6,13 +6,21 @@ import { COLORS } from "../../constants";
 import { Button } from "../../components/Button";
 import { createRequest, UserRequestType } from "../../services/requests";
 import { getApiErrorMessage } from "../../utils/errors";
+import type { ProfessionalCategory } from "../../types";
 const TYPES: { label: string; value: UserRequestType }[] = [
   { label: "Apartment or home", value: "PROPERTY" },
   { label: "Co-tenant", value: "CO_RENTING" },
   { label: "Land", value: "LAND" },
   { label: "Household item", value: "HOUSEHOLD" },
-  { label: "Professional", value: "PROFESSIONAL" },
+  { label: "Professional / artisan", value: "PROFESSIONAL" },
   { label: "Service", value: "SERVICE" },
+];
+const SERVICE_CATEGORIES: { label: string; value: ProfessionalCategory }[] = [
+  { label: "Plumber", value: "PLUMBER" }, { label: "Electrician", value: "ELECTRICIAN" },
+  { label: "Carpenter", value: "CARPENTER" }, { label: "Painter", value: "PAINTER" },
+  { label: "Tiler", value: "TILER" }, { label: "Bricklayer", value: "BRICKLAYER" },
+  { label: "Roofer", value: "ROOFER" }, { label: "Engineer", value: "ENGINEER" },
+  { label: "Architect", value: "ARCHITECT" }, { label: "Other", value: "OTHER" },
 ];
 export default function NewRequestScreen() {
   const [type, setType] = useState<UserRequestType>("PROPERTY");
@@ -26,6 +34,7 @@ export default function NewRequestScreen() {
   const [landUnit, setLandUnit] = useState("plots");
   const [condition, setCondition] = useState("");
   const [specialty, setSpecialty] = useState(""); const [experience, setExperience] = useState(""); const [availability, setAvailability] = useState(""); const [contactMode, setContactMode] = useState("IN_APP");
+  const [serviceCategory, setServiceCategory] = useState<ProfessionalCategory | undefined>();
   const [loading, setLoading] = useState(false);
   const save = async () => {
     if (!title.trim() || !description.trim())
@@ -38,7 +47,8 @@ export default function NewRequestScreen() {
         description: description.trim(),
         budgetMax: budget ? Number(budget.replace(/,/g, "")) : undefined,
         bedrooms: bedrooms ? Number(bedrooms) : undefined,
-        criteria: { location: location.trim() || undefined, bedrooms: bedrooms ? Number(bedrooms) : undefined, bathrooms: bathrooms ? Number(bathrooms) : undefined, toilets: toilets ? Number(toilets) : undefined, parkingSpaces: parking ? Number(parking) : undefined, furnished: furnished || undefined, landSize: landSize || undefined, landUnit: type === "LAND" ? landUnit : undefined, condition: condition.trim() || undefined, specialty: specialty.trim() || undefined, experience: experience.trim() || undefined, availability: availability.trim() || undefined, contactMode },
+        serviceCategory: type === "PROFESSIONAL" || type === "SERVICE" ? serviceCategory : undefined,
+        criteria: { location: location.trim() || undefined, bedrooms: bedrooms ? Number(bedrooms) : undefined, bathrooms: bathrooms ? Number(bathrooms) : undefined, toilets: toilets ? Number(toilets) : undefined, parkingSpaces: parking ? Number(parking) : undefined, furnished: furnished || undefined, landSize: landSize || undefined, landUnit: type === "LAND" ? landUnit : undefined, condition: condition.trim() || undefined, specialty: specialty.trim() || undefined, experience: experience.trim() || undefined, availability: availability.trim() || undefined, serviceCategory, contactMode },
         contactMode,
       });
       Alert.alert(
@@ -105,7 +115,7 @@ export default function NewRequestScreen() {
         {(type === "PROPERTY" || type === "CO_RENTING") && <><TextInput style={styles.input} placeholder="Bathrooms" placeholderTextColor={COLORS.muted} value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" /><TextInput style={styles.input} placeholder="Toilets" placeholderTextColor={COLORS.muted} value={toilets} onChangeText={setToilets} keyboardType="numeric" /><TextInput style={styles.input} placeholder="Parking spaces" placeholderTextColor={COLORS.muted} value={parking} onChangeText={setParking} keyboardType="numeric" /><TextInput style={styles.input} placeholder="Furnished? (yes/no)" placeholderTextColor={COLORS.muted} value={furnished} onChangeText={setFurnished} /></>}
         {type === "LAND" && <><TextInput style={styles.input} placeholder="Land size (optional)" placeholderTextColor={COLORS.muted} value={landSize} onChangeText={setLandSize} keyboardType="numeric" /><ScrollView horizontal style={{ flexGrow: 0 }} contentContainerStyle={styles.types}>{["plots", "acres", "hectares", "square metres"].map((unit) => <Text key={unit} onPress={() => setLandUnit(unit)} style={[styles.type, landUnit === unit && styles.selected]}>{unit}</Text>)}</ScrollView></>}
         {type === "HOUSEHOLD" && <TextInput style={styles.input} placeholder="Condition or preferred specification" placeholderTextColor={COLORS.muted} value={condition} onChangeText={setCondition} />}
-        {(type === "PROFESSIONAL" || type === "SERVICE") && <><TextInput style={styles.input} placeholder="Specialty or service needed" placeholderTextColor={COLORS.muted} value={specialty} onChangeText={setSpecialty} /><TextInput style={styles.input} placeholder="Experience level (optional)" placeholderTextColor={COLORS.muted} value={experience} onChangeText={setExperience} /><TextInput style={styles.input} placeholder="Availability (optional)" placeholderTextColor={COLORS.muted} value={availability} onChangeText={setAvailability} /></>}
+        {(type === "PROFESSIONAL" || type === "SERVICE") && <><Text style={styles.label}>Professional or artisan category</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={styles.types}>{SERVICE_CATEGORIES.map((item) => <Text key={item.value} onPress={() => setServiceCategory(item.value)} style={[styles.type, serviceCategory === item.value && styles.selected]}>{item.label}</Text>)}</ScrollView><TextInput style={styles.input} placeholder="Specialty or service needed" placeholderTextColor={COLORS.muted} value={specialty} onChangeText={setSpecialty} /><TextInput style={styles.input} placeholder="Experience level (optional)" placeholderTextColor={COLORS.muted} value={experience} onChangeText={setExperience} /><TextInput style={styles.input} placeholder="Availability (optional)" placeholderTextColor={COLORS.muted} value={availability} onChangeText={setAvailability} /></>}
         <Text style={styles.label}>Preferred contact</Text><ScrollView horizontal style={{ flexGrow: 0 }} contentContainerStyle={styles.types}>{["IN_APP", "PHONE", "WHATSAPP"].map((mode) => <Text key={mode} onPress={() => setContactMode(mode)} style={[styles.type, contactMode === mode && styles.selected]}>{mode.replace("_", " ")}</Text>)}</ScrollView>
         <TextInput
           style={styles.input}

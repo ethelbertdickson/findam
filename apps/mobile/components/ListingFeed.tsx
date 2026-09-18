@@ -101,6 +101,7 @@ export function ListingFeed({
         <View style={styles.connectionText}>
           <Text style={styles.connectionTitle}>Connection lost</Text>
           <Text style={styles.connectionAction}>Tap to reconnect</Text>
+          <Text style={styles.connectionDetail}>{result.error instanceof Error ? result.error.message : "Request failed"}</Text>
         </View>
         <Ionicons name="refresh" size={21} color={COLORS.primary} />
       </Pressable>
@@ -194,6 +195,7 @@ const styles = StyleSheet.create({
   connectionText: { flex: 1 },
   connectionTitle: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
   connectionAction: { color: COLORS.primary, fontSize: 12, marginTop: 2 },
+  connectionDetail: { color: COLORS.muted, fontSize: 10, marginTop: 4 },
   row: { gap: 12, paddingHorizontal: 16 },
   list: { gap: 12, padding: 16 },
   skeletonRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16 },

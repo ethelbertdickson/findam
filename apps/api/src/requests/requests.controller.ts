@@ -12,7 +12,7 @@ import { RequestsService } from './requests.service';
 export class RequestsController {
   constructor(private readonly requests: RequestsService) {}
   @Public() @Get() all(@Query() query: RequestsQueryDto) { return this.requests.findAll(query); }
-  @Get('mine') mine(@CurrentUser() user: JwtAccessPayload) { return this.requests.mine(user.sub); }
+  @Get('mine') mine(@CurrentUser() user: JwtAccessPayload, @Query() query: RequestsQueryDto) { return this.requests.mine(user.sub, query); }
   @Public() @Get(':id') one(@Param('id') id: string) { return this.requests.findOne(id); }
   @Post() create(@CurrentUser() user: JwtAccessPayload, @Body() dto: CreateRequestDto) { return this.requests.create(user.sub, dto); }
 }

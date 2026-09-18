@@ -6,8 +6,8 @@ import { COLORS } from "../../constants";
 
 const cards = [
   {
-    title: "Find a trusted professional",
-    note: "Connect with plumbers, electricians, architects and artisans.",
+    title: "Find a professional or artisan",
+    note: "Browse engineers, architects, plumbers, electricians, carpenters and other skilled providers.",
     icon: "construct-outline" as const,
     action: () => router.push("/professionals"),
   },
@@ -29,9 +29,19 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          </Pressable>
+          <View>
           <Text style={styles.kicker}>MORE WAYS TO FIND</Text>
           <Text style={styles.title}>Discover</Text>
+          </View>
         </View>
         <Ionicons name="sparkles-outline" size={26} color={COLORS.primary} />
       </View>
@@ -70,6 +80,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  backButton: {
+    padding: 2,
   },
   kicker: {
     color: COLORS.muted,
