@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNumber, IsObject, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ProfessionalCategory, UserRequestType } from '@prisma/client';
 
@@ -15,5 +15,7 @@ export class CreateRequestDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) budgetMax?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(0) bedrooms?: number;
   @ApiPropertyOptional({ enum: ProfessionalCategory }) @IsOptional() @IsEnum(ProfessionalCategory) serviceCategory?: ProfessionalCategory;
+  @ApiProperty({ description: 'Required contact phone number' }) @IsString() @MinLength(5) contactPhone!: string;
+  @ApiPropertyOptional() @IsOptional() @IsEmail() contactEmail?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() contactMode?: string;
 }

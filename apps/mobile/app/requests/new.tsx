@@ -34,11 +34,12 @@ export default function NewRequestScreen() {
   const [landUnit, setLandUnit] = useState("plots");
   const [condition, setCondition] = useState("");
   const [specialty, setSpecialty] = useState(""); const [experience, setExperience] = useState(""); const [availability, setAvailability] = useState(""); const [contactMode, setContactMode] = useState("IN_APP");
+  const [contactPhone, setContactPhone] = useState(""); const [contactEmail, setContactEmail] = useState("");
   const [serviceCategory, setServiceCategory] = useState<ProfessionalCategory | undefined>();
   const [loading, setLoading] = useState(false);
   const save = async () => {
-    if (!title.trim() || !description.trim())
-      return Alert.alert("Missing details", "Describe what you need.");
+    if (!title.trim() || !description.trim() || !contactPhone.trim())
+      return Alert.alert("Missing details", "Add what you need and a contact phone number.");
     setLoading(true);
     try {
       await createRequest({
@@ -48,6 +49,8 @@ export default function NewRequestScreen() {
         budgetMax: budget ? Number(budget.replace(/,/g, "")) : undefined,
         bedrooms: bedrooms ? Number(bedrooms) : undefined,
         serviceCategory: type === "PROFESSIONAL" || type === "SERVICE" ? serviceCategory : undefined,
+        contactPhone: contactPhone.trim(),
+        contactEmail: contactEmail.trim() || undefined,
         criteria: { location: location.trim() || undefined, bedrooms: bedrooms ? Number(bedrooms) : undefined, bathrooms: bathrooms ? Number(bathrooms) : undefined, toilets: toilets ? Number(toilets) : undefined, parkingSpaces: parking ? Number(parking) : undefined, furnished: furnished || undefined, landSize: landSize || undefined, landUnit: type === "LAND" ? landUnit : undefined, condition: condition.trim() || undefined, specialty: specialty.trim() || undefined, experience: experience.trim() || undefined, availability: availability.trim() || undefined, serviceCategory, contactMode },
         contactMode,
       });
@@ -104,6 +107,8 @@ export default function NewRequestScreen() {
           onChangeText={setDescription}
           multiline
         />
+        <TextInput style={styles.input} placeholder="Phone number (required)" placeholderTextColor={COLORS.muted} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" />
+        <TextInput style={styles.input} placeholder="Email (optional)" placeholderTextColor={COLORS.muted} value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" autoCapitalize="none" />
         <TextInput
           style={styles.input}
           placeholder="Preferred location"

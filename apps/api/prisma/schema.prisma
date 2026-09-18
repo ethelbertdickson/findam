@@ -507,6 +507,8 @@ model UserRequest {
   budgetMax       Decimal?              @db.Decimal(14, 2)
   bedrooms        Int?
   serviceCategory ProfessionalCategory?
+  contactPhone    String?
+  contactEmail    String?
   contactMode     String                @default("MANAGED")
   status          UserRequestStatus     @default(OPEN)
   expiresAt       DateTime?
