@@ -55,13 +55,14 @@ export class SelfHostedMediaProvider implements StorageProvider {
 
     let response: Response;
     try {
+      const isVideo = file.mimetype.startsWith('video/');
       response = await fetch(
         `${this.serviceUrl}/api/v1/projects/${encodeURIComponent(this.projectSlug)}/assets`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${this.apiKey}` },
           body,
-          signal: AbortSignal.timeout(20_000),
+          signal: AbortSignal.timeout(isVideo ? 120_000 : 30_000),
         },
       );
     } catch (error) {

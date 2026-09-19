@@ -115,6 +115,9 @@ export async function uploadMedia(uri: string, mimeType?: string) {
   } as any);
   const { data } = await apiClient.post<{ url: string }>("/uploads", body, {
     headers: { "Content-Type": "multipart/form-data" },
+    // Video uploads are compressed by the media service before the URL is
+    // returned. Give that server-side transcode enough time to complete.
+    timeout: isVideo ? 120_000 : 30_000,
   });
   return data.url;
 }

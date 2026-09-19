@@ -17,6 +17,9 @@ export default function AppSettingsScreen() {
     setSaving(true);
     try {
       const updated = await updateProfile({ currencyCode });
+      // Update the in-memory profile immediately; a refresh token may not be
+      // available for older sessions, but the server update has still succeeded.
+      useAuthStore.getState().setUser(updated);
       const accessToken = useAuthStore.getState().accessToken;
       const refreshToken = await getStoredRefreshToken();
       if (accessToken && refreshToken) await useAuthStore.getState().setSession({ user: updated, accessToken, refreshToken });

@@ -199,8 +199,8 @@ export default function CreateListingScreen() {
   const [totalRooms, setTotalRooms] = useState(1);
   const [currentTenants, setCurrentTenants] = useState(0);
   const [coRentingNote, setCoRentingNote] = useState("");
-  const [agencyFeeType, setAgencyFeeType] = useState<AgencyFeeType>("FLAT");
-  const [agencyFee, setAgencyFee] = useState("");
+  const [agencyFeeType, setAgencyFeeType] = useState<AgencyFeeType>("PERCENTAGE");
+  const [agencyFee, setAgencyFee] = useState("10");
   const [landTenure, setLandTenure] = useState<LandTenure>("SALE");
   const [landSize, setLandSize] = useState("1");
   const [measurementUnit, setMeasurementUnit] =
@@ -619,13 +619,14 @@ export default function CreateListingScreen() {
           <ChoiceField
             label="Agent fee"
             options={[
-              { label: "Flat amount", value: "FLAT" },
               { label: "Percentage (%)", value: "PERCENTAGE" },
+              { label: "Flat amount", value: "FLAT" },
             ]}
             value={agencyFeeType}
             onChange={(value) => {
-              setAgencyFeeType(value);
-              setAgencyFee("");
+              const nextType = value as AgencyFeeType;
+              setAgencyFeeType(nextType);
+              setAgencyFee(nextType === "PERCENTAGE" ? "10" : "");
             }}
           />
           <View style={styles.feeInputWrap}>
