@@ -6,15 +6,19 @@ import {
 } from "@nestjs/common";
 import { MediaAssetKind, Prisma } from "@prisma/client";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { PrismaService } from "../prisma/prisma.service";
 import { AssetsQueryDto } from "./dto/assets-query.dto";
 import { CreateApiKeyDto } from "./dto/create-api-key.dto";
 import { CreateFolderDto } from "./dto/create-folder.dto";
 import { CreateProjectDto } from "./dto/create-project.dto";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_SIZE = 80 * 1024 * 1024;
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class MediaService {
@@ -172,7 +176,7 @@ export class MediaService {
       throw new BadRequestException("A file is required");
     }
     if (file.size > MAX_FILE_SIZE) {
-      throw new BadRequestException("Files may not exceed 20 MB");
+      throw new BadRequestException("Files may not exceed 80 MB");
     }
     if (!allowedMimeType(file.mimetype)) {
       throw new BadRequestException("Unsupported file type");
@@ -180,12 +184,15 @@ export class MediaService {
 
     const project = await this.getProject(projectSlug);
     const folder = folderPath ? await this.getFolder(project.id, folderPath) : null;
+    const processed = file.mimetype.startsWith("video/")
+      ? await compressVideo(file)
+      : { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname };
     const id = randomUUID();
-    const extension = safeExtension(file.originalname, file.mimetype);
+    const extension = safeExtension(processed.originalname, processed.mimetype);
     const storedFilename = `${id}${extension}`;
     const storagePath = resolve(process.env.MEDIA_STORAGE_PATH ?? "./storage");
     await mkdir(storagePath, { recursive: true });
-    await writeFile(resolve(storagePath, storedFilename), file.buffer, {
+    await writeFile(resolve(storagePath, storedFilename), processed.buffer, {
       flag: "wx",
     });
 
@@ -197,9 +204,9 @@ export class MediaService {
           folderId: folder?.id,
           originalFilename: file.originalname.slice(0, 255),
           storedFilename,
-          mimeType: file.mimetype,
-          kind: kindForMimeType(file.mimetype),
-          sizeBytes: file.size,
+          mimeType: processed.mimetype,
+          kind: kindForMimeType(processed.mimetype),
+          sizeBytes: processed.buffer.length,
           urlPath: `/media/${storedFilename}`,
         },
         include: { folder: { select: { id: true, name: true, path: true } } },
@@ -244,6 +251,38 @@ export class MediaService {
 
 export function hashApiKey(key: string) {
   return createHash("sha256").update(key).digest("hex");
+}
+
+async function compressVideo(file: Express.Multer.File) {
+  const workdir = await mkdtemp(resolve(tmpdir(), "findam-video-"));
+  const input = resolve(workdir, "input");
+  const output = resolve(workdir, "output.mp4");
+  try {
+    await writeFile(input, file.buffer, { flag: "wx" });
+    await execFileAsync("ffmpeg", [
+      "-y",
+      "-i", input,
+      "-vf", "scale='min(1280,iw)':-2",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "28",
+      "-c:a", "aac",
+      "-b:a", "96k",
+      "-movflags", "+faststart",
+      output,
+    ], { maxBuffer: 2 * 1024 * 1024 });
+    const buffer = await readFile(output);
+    // Keep the source when transcoding would make a small clip larger.
+    // Larger uploads still use the normalized, compressed MP4 output.
+    if (buffer.length >= file.buffer.length) {
+      return { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname };
+    }
+    return { buffer, mimetype: "video/mp4", originalname: `${file.originalname}.mp4` };
+  } catch {
+    throw new BadRequestException("Video could not be compressed");
+  } finally {
+    await rm(workdir, { recursive: true, force: true }).catch(() => undefined);
+  }
 }
 
 function normalizePath(value: string) {

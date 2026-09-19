@@ -66,7 +66,7 @@ export class MediaController {
 
   @Post("assets")
   @UseGuards(MediaCsrfGuard)
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 20 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 80 * 1024 * 1024 } }))
   upload(
     @UploadedFile() file: Express.Multer.File,
     @Body("projectSlug") projectSlug: string,
@@ -83,7 +83,7 @@ export class ProjectUploadsController {
 
   @Post(":projectSlug/assets")
   @UseGuards(ProjectApiKeyGuard)
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 20 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 80 * 1024 * 1024 } }))
   upload(
     @Param("projectSlug") projectSlug: string,
     @UploadedFile() file: Express.Multer.File,

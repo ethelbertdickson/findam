@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { AuthResult, AuthTokens, User } from "../types";
+import type { AuthResult, AuthTokens, User, CurrencyCode } from "../types";
 
 interface RegisterInput {
   email: string;
@@ -53,6 +53,7 @@ export async function updateProfile(input: {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
+  currencyCode?: CurrencyCode;
 }) {
   const { data } = await apiClient.patch<User>("/auth/me", input);
   return data;

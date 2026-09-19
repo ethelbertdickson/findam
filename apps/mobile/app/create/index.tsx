@@ -35,8 +35,9 @@ import type {
   PropertyOfferType,
   PropertyType,
   RentPeriod,
+  CurrencyCode,
 } from "../../types";
-import { formatAmountInput, parseAmountInput } from "../../utils/currency";
+import { CURRENCIES, formatAmountInput, parseAmountInput } from "../../utils/currency";
 import { getApiErrorMessage } from "../../utils/errors";
 
 const TYPES: { label: string; value: ListingType }[] = [
@@ -181,6 +182,7 @@ export default function CreateListingScreen() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [currencyCode, setCurrencyCode] = useState<CurrencyCode>("NGN");
   const [selectedLocation, setSelectedLocation] =
     useState<LocationSuggestion | null>(null);
   const [photos, setPhotos] = useState<ListingMediaDraft[]>([]);
@@ -230,6 +232,7 @@ export default function CreateListingScreen() {
     setTitle(listing.title);
     setDescription(listing.description);
     setPrice(formatAmountInput(listing.price));
+    setCurrencyCode(listing.currencyCode || "NGN");
     if (listing.latitude != null && listing.longitude != null) {
       setSelectedLocation({
         id: listing.locationPlaceId || listing.id,
@@ -371,6 +374,7 @@ export default function CreateListingScreen() {
         title: title.trim(),
         description: description.trim(),
         price: parseAmountInput(price),
+        currencyCode,
         countryName: selectedLocation?.countryName,
         countryCode: selectedLocation?.countryCode,
         stateName: selectedLocation?.stateName,
@@ -482,12 +486,20 @@ export default function CreateListingScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Price (₦)"
+        placeholder={`Price (${currencyCode})`}
         placeholderTextColor={COLORS.muted}
         value={price}
         onChangeText={(value) => setPrice(formatAmountInput(value))}
         keyboardType="numeric"
       />
+      <Text style={styles.label}>Listing currency</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.choiceWrap}>
+        {CURRENCIES.map((item) => (
+          <Pressable key={item.code} onPress={() => setCurrencyCode(item.code)} style={[styles.choice, currencyCode === item.code && styles.choiceSelected]}>
+            <Text style={[styles.choiceText, currencyCode === item.code && styles.choiceTextSelected]}>{item.code}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
       <LocationAutocomplete
         label="Listing location"
         selected={selectedLocation}

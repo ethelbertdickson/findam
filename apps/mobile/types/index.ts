@@ -2,6 +2,7 @@
 // Kept in sync manually until an OpenAPI-generated client is introduced.
 
 export type Role = "USER" | "AGENT" | "ADMIN";
+export type CurrencyCode = "NGN" | "USD" | "GBP" | "EUR" | "CAD" | "AUD" | "ZAR" | "GHS" | "KES";
 
 export type ListingType = "PROPERTY" | "LAND" | "HOUSEHOLD";
 
@@ -91,6 +92,7 @@ export interface Listing {
   title: string;
   description: string;
   price: number;
+  currencyCode: CurrencyCode;
   status: ListingStatus;
   countryId: string;
   stateId: string;
@@ -174,6 +176,7 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  currencyCode: CurrencyCode;
 }
 
 export interface AuthTokens {

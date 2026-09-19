@@ -4,6 +4,7 @@ import {
   ArrayMaxSize,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -187,6 +188,10 @@ export class CreateListingDto {
   @ApiProperty() @IsString() @MaxLength(120) title!: string;
   @ApiProperty() @IsString() @MaxLength(5000) description!: string;
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) price!: number;
+  @ApiPropertyOptional({ enum: ['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'ZAR', 'GHS', 'KES'], default: 'NGN' })
+  @IsOptional()
+  @IsIn(['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'ZAR', 'GHS', 'KES'])
+  currencyCode?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() countryId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() stateId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() cityId?: string;

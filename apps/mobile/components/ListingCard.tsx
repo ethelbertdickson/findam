@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants";
 import type { Listing } from "../types";
-import { getAgencyFee } from "../utils/currency";
+import { formatCurrency, getAgencyFee } from "../utils/currency";
 
 interface ListingCardProps {
   listing: Listing;
@@ -82,10 +82,10 @@ export function ListingCard({
         <Text style={styles.title} numberOfLines={1}>
           {listing.title}
         </Text>
-        <Text style={styles.price}>₦{listing.price.toLocaleString()}</Text>
+        <Text style={styles.price}>{formatCurrency(listing.price, listing.currencyCode || "NGN")}</Text>
         {showAgencyFee && agencyFee > 0 && (
           <Text style={styles.fee} numberOfLines={1}>
-            Agent fee: ₦{agencyFee.toLocaleString()}
+            Agent fee: {formatCurrency(agencyFee, listing.currencyCode || "NGN")}
             {listing.propertyDetails?.agencyFeeType === "PERCENTAGE"
               ? ` (${Number(listing.propertyDetails.agencyFee)}%)`
               : ""}

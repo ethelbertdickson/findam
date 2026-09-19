@@ -6,6 +6,7 @@ import type {
   PropertyType,
   PropertyOfferType,
   LandTenure,
+  CurrencyCode,
 } from "../types";
 
 export interface ListingPage {
@@ -70,6 +71,7 @@ export interface ListingInput {
   title: string;
   description: string;
   price: number;
+  currencyCode?: CurrencyCode;
   areaName?: string;
   countryName?: string;
   countryCode?: string;

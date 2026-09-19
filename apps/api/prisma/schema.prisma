@@ -211,6 +211,7 @@ model User {
   lastName     String
   avatarUrl    String?
   role         Role    @default(USER)
+  currencyCode String  @default("NGN")
   isActive     Boolean @default(true)
 
   agentProfile             AgentProfile?
@@ -592,6 +593,7 @@ model Listing {
   title       String
   description String
   price       Decimal       @db.Decimal(14, 2)
+  currencyCode String       @default("NGN")
   status      ListingStatus @default(DRAFT)
 
   countryId String

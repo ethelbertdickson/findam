@@ -19,7 +19,7 @@ import {
 import { locationLabel } from "../../components/ListingFeed";
 import { COLORS } from "../../constants";
 import { fetchListing } from "../../services/listings";
-import { getAgencyFee } from "../../utils/currency";
+import { formatCurrency, getAgencyFee } from "../../utils/currency";
 
 const readable = (value: string) =>
   value
@@ -159,7 +159,7 @@ export default function ListingDetailScreen() {
           </View>
         )}
         <Text style={styles.title}>{listing.title}</Text>
-        <Text style={styles.price}>₦{listing.price.toLocaleString()}</Text>
+        <Text style={styles.price}>{formatCurrency(listing.price, listing.currencyCode || "NGN")}</Text>
         <Text style={styles.location}>{locationLabel(listing)}</Text>
         {property && (
           <View style={styles.featureRow}>
@@ -217,19 +217,19 @@ export default function ListingDetailScreen() {
                 : property.offerType === "SHORT_LET"
                   ? "Short-let price"
                   : "Rent"}
-              : ₦{listing.price.toLocaleString()}
+              : {formatCurrency(listing.price, listing.currencyCode || "NGN")}
             </Text>
             <Text style={styles.bodyText}>
               Agent fee
               {property.agencyFeeType === "PERCENTAGE"
                 ? ` (${Number(property.agencyFee)}%)`
                 : ""}
-              : ₦{agencyFee.toLocaleString()}
+              : {formatCurrency(agencyFee, listing.currencyCode || "NGN")}
             </Text>
             <Text style={styles.bodyText}>
-              All fees: ₦{(total - listing.price).toLocaleString()}
+              All fees: {formatCurrency(total - listing.price, listing.currencyCode || "NGN")}
             </Text>
-            <Text style={styles.total}>Total: ₦{total.toLocaleString()}</Text>
+            <Text style={styles.total}>Total: {formatCurrency(total, listing.currencyCode || "NGN")}</Text>
           </View>
         )}
         {listing.owner && (
