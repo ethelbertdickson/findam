@@ -26,7 +26,7 @@ export class CloudinaryProvider implements StorageProvider {
     };
     cloudinary.config(this.credentials);
   }
-  uploadImage(file: {
+  uploadMedia(file: {
     buffer: Buffer;
     mimetype: string;
     originalname: string;
@@ -41,14 +41,14 @@ export class CloudinaryProvider implements StorageProvider {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'findam/listings',
-          resource_type: 'image',
+          resource_type: 'auto',
           ...this.credentials,
         },
         (error, result) => {
           if (error || !result) {
             const reason = error?.message ?? 'Cloudinary returned no result';
-            this.logger.error(`Image upload failed: ${reason}`);
-            return reject(new BadRequestException('Image upload failed'));
+            this.logger.error(`Media upload failed: ${reason}`);
+            return reject(new BadRequestException('Media upload failed'));
           }
           resolve({
             url: result.secure_url,
@@ -61,5 +61,9 @@ export class CloudinaryProvider implements StorageProvider {
       );
       stream.end(file.buffer);
     });
+  }
+
+  uploadImage(file: { buffer: Buffer; mimetype: string; originalname: string }) {
+    return this.uploadMedia(file);
   }
 }

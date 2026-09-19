@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ListingType, Prisma, ListingStatus } from '@prisma/client';
+import { ListingType, Prisma, ListingStatus, ListingMediaType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListingsQueryDto } from './dto/listings-query.dto';
 import { CreateListingDto } from './dto/create-listing.dto';
@@ -37,6 +37,19 @@ function serialize<T extends { price: Prisma.Decimal }>(listing: T) {
 @Injectable()
 export class ListingsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private mediaData(dto: CreateListingDto | UpdateListingDto, required = false) {
+    const media = dto.media ?? dto.images?.map((url) => ({ url, mediaType: ListingMediaType.IMAGE }));
+    if (required && (!media || media.length === 0))
+      throw new BadRequestException('At least one image is required');
+    if (!media) return undefined;
+    if (media.length > 5) throw new BadRequestException('A listing can have at most five media items');
+    if (media[0]?.mediaType !== ListingMediaType.IMAGE)
+      throw new BadRequestException('The first listing media item must be an image');
+    if (media.filter((item) => item.mediaType === ListingMediaType.VIDEO).length > 1)
+      throw new BadRequestException('A listing can have only one video');
+    return media.map((item, position) => ({ url: item.url, position, mediaType: item.mediaType }));
+  }
 
   async findAll(query: ListingsQueryDto) {
     const searchTerms = query.q?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -246,6 +259,7 @@ export class ListingsService {
       throw new BadRequestException(
         'Household details are required for household listings',
       );
+    const media = this.mediaData(dto, true);
     const locations = await this.locationIds(dto);
     const listing = await this.prisma.listing.create({
       data: {
@@ -261,9 +275,7 @@ export class ListingsService {
         formattedAddress: dto.formattedAddress,
         locationProvider: dto.locationProvider,
         locationPlaceId: dto.locationPlaceId,
-        images: dto.images
-          ? { create: dto.images.map((url, position) => ({ url, position })) }
-          : undefined,
+        images: { create: media },
         propertyDetails:
           dto.type === ListingType.PROPERTY && dto.propertyDetails
             ? { create: dto.propertyDetails }
@@ -310,6 +322,7 @@ export class ListingsService {
     const locations = hasLocationUpdate
       ? await this.locationIds(dto as CreateListingDto)
       : {};
+    const media = dto.media !== undefined || dto.images !== undefined ? this.mediaData(dto, true) : undefined;
     const listing = await this.prisma.listing.update({
       where: { id },
       data: {
@@ -328,10 +341,10 @@ export class ListingsService {
         ...(dto.locationPlaceId !== undefined && {
           locationPlaceId: dto.locationPlaceId,
         }),
-        ...(dto.images !== undefined && {
+        ...(media !== undefined && {
           images: {
             deleteMany: {},
-            create: dto.images.map((url, position) => ({ url, position })),
+            create: media,
           },
         }),
         ...(dto.propertyDetails && {

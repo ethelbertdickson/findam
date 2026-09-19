@@ -80,6 +80,10 @@ enum ListingStatus {
   REJECTED
   ARCHIVED
 }
+enum ListingMediaType {
+  IMAGE
+  VIDEO
+}
 
 enum AdminAuditAction {
   USER_ACTIVATED
@@ -636,6 +640,7 @@ model ListingImage {
   url       String
   publicId  String?
   position  Int     @default(0)
+  mediaType ListingMediaType @default(IMAGE)
 
   createdAt DateTime @default(now())
 

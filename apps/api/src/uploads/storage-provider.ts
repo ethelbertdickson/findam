@@ -7,7 +7,12 @@ export interface StoredImage {
 }
 
 export interface StorageProvider {
-  uploadImage(file: {
+  uploadMedia(file: {
+    buffer: Buffer;
+    mimetype: string;
+    originalname: string;
+  }): Promise<StoredImage>;
+  uploadImage?(file: {
     buffer: Buffer;
     mimetype: string;
     originalname: string;

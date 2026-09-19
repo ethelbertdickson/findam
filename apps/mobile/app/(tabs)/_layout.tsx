@@ -34,13 +34,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="household"
-        options={{
-          title: "Household",
-          tabBarIcon: tabIcon("cube-outline"),
-        }}
-      />
-      <Tabs.Screen
         name="properties"
         options={{
           title: "Properties",
@@ -52,6 +45,13 @@ export default function TabsLayout() {
         options={{
           title: "Land",
           tabBarIcon: tabIcon("map-outline"),
+        }}
+      />
+      <Tabs.Screen
+        name="household"
+        options={{
+          title: "Household",
+          tabBarIcon: tabIcon("cube-outline"),
         }}
       />
       <Tabs.Screen

@@ -81,6 +81,7 @@ export interface ListingInput {
   locationProvider?: string;
   locationPlaceId?: string;
   images?: string[];
+  media?: { url: string; mediaType: "IMAGE" | "VIDEO" }[];
   propertyDetails?: Record<string, unknown>;
   landDetails?: Record<string, unknown>;
   householdDetails?: Record<string, unknown>;
@@ -97,11 +98,18 @@ export async function updateListing(id: string, input: ListingInput) {
 }
 
 export async function uploadImage(uri: string) {
+  return uploadMedia(uri, "image/jpeg");
+}
+
+export async function uploadMedia(uri: string, mimeType?: string) {
   const body = new FormData();
+  const isVideo = mimeType?.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(uri);
+  const type = mimeType || (isVideo ? "video/mp4" : "image/jpeg");
+  const extension = type.split("/")[1] || (isVideo ? "mp4" : "jpg");
   body.append("file", {
     uri,
-    name: `listing-${Date.now()}.jpg`,
-    type: "image/jpeg",
+    name: `listing-${Date.now()}.${extension}`,
+    type,
   } as any);
   const { data } = await apiClient.post<{ url: string }>("/uploads", body, {
     headers: { "Content-Type": "multipart/form-data" },

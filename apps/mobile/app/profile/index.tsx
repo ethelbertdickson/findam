@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
+import { router } from "expo-router";
 import {
   Alert,
   Pressable,
@@ -30,6 +31,10 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (!user) return;
+    if (user.role === "AGENT") {
+      router.replace("/agent-profile");
+      return;
+    }
     setFirstName(user.firstName);
     setLastName(user.lastName);
     setPhone(user.phone || "");
@@ -185,6 +190,12 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
+          {user.role !== "AGENT" && (
+            <Button
+              label="Become an agent"
+              onPress={() => router.push("/agent-profile")}
+            />
+          )}
         </View>
       )}
     </ScrollView>

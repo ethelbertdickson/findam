@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -25,6 +26,15 @@ const readable = (value: string) =>
     .toLowerCase()
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+function ListingMediaView({ item, style }: { item: { url: string; mediaType?: "IMAGE" | "VIDEO" }; style: any }) {
+  const player = useVideoPlayer(item.mediaType === "VIDEO" ? item.url : null, (instance) => {
+    instance.loop = true;
+  });
+  if (item.mediaType === "VIDEO")
+    return <VideoView player={player} style={style} nativeControls contentFit="contain" />;
+  return <Image source={{ uri: item.url }} style={style} contentFit="cover" />;
+}
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -112,11 +122,7 @@ export default function ListingDetailScreen() {
               }
               renderItem={({ item }) => (
                 <Pressable onPress={() => setExpanded(true)}>
-                  <Image
-                    source={{ uri: item.url }}
-                    style={[styles.hero, { width: galleryWidth }]}
-                    contentFit="cover"
-                  />
+                  <ListingMediaView item={item} style={[styles.hero, { width: galleryWidth }]} />
                   <View style={styles.expandButton}>
                     <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
                   </View>
@@ -142,11 +148,9 @@ export default function ListingDetailScreen() {
                         activeImage === index && styles.thumbnailActive,
                       ]}
                     >
-                      <Image
-                        source={{ uri: image.url }}
-                        style={styles.thumbnail}
-                        contentFit="cover"
-                      />
+                      {image.mediaType === "VIDEO" ? (
+                        <View style={[styles.thumbnail, styles.videoThumbnail]}><Ionicons name="videocam" size={18} color={COLORS.text} /></View>
+                      ) : <Image source={{ uri: image.url }} style={styles.thumbnail} contentFit="cover" />}
                     </Pressable>
                   ))}
                 </ScrollView>
@@ -284,13 +288,7 @@ export default function ListingDetailScreen() {
                 Math.round(event.nativeEvent.contentOffset.x / width),
               )
             }
-            renderItem={({ item }) => (
-              <Image
-                source={{ uri: item.url }}
-                style={{ width, height: "100%" }}
-                contentFit="contain"
-              />
-            )}
+            renderItem={({ item }) => <ListingMediaView item={item} style={{ width, height: "100%" }} />}
           />
           <Text style={styles.modalCount}>
             {activeImage + 1} / {listing.images.length}
@@ -345,6 +343,7 @@ const styles = StyleSheet.create({
   },
   thumbnailActive: { borderColor: COLORS.primary },
   thumbnail: { width: "100%", height: "100%" },
+  videoThumbnail: { backgroundColor: COLORS.surface, alignItems: "center", justifyContent: "center" },
   title: {
     fontSize: 22,
     fontWeight: "800",

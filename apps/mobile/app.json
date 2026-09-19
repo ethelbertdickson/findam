@@ -46,7 +46,8 @@
           "locationWhenInUsePermission": "Allow Find Am to use your location only when you choose Use my current location."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-video"
     ],
     "extra": {
       "router": {},

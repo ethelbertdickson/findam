@@ -14,18 +14,6 @@ interface SettingsRow {
 
 const ROWS: SettingsRow[] = [
   {
-    label: "User profile",
-    icon: "person-outline",
-    href: "/profile",
-    requiresAuth: true,
-  },
-  {
-    label: "Agent profile",
-    icon: "briefcase-outline",
-    href: "/agent-profile",
-    requiresAuth: true,
-  },
-  {
     label: "Saved listings",
     icon: "heart-outline",
     href: "/saved",
@@ -46,6 +34,9 @@ const ROWS: SettingsRow[] = [
 
 export default function SettingsScreen() {
   const { user, isAuthenticated, logout } = useAuth();
+  const profileRow: SettingsRow = user?.role === "AGENT"
+    ? { label: "Agent profile", icon: "briefcase-outline", href: "/agent-profile", requiresAuth: true }
+    : { label: "User profile", icon: "person-outline", href: "/profile", requiresAuth: true };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -86,7 +77,7 @@ export default function SettingsScreen() {
             </Text>
           </Pressable>
         )}
-        {ROWS.map((row) => (
+        {[profileRow, ...ROWS].map((row) => (
           <Pressable
             key={row.label}
             style={styles.row}
@@ -101,11 +92,7 @@ export default function SettingsScreen() {
             }}
           >
             <Ionicons name={row.icon} size={20} color={COLORS.text} />
-            <Text style={styles.rowLabel}>
-              {row.label === "Agent profile" && user?.role !== "AGENT"
-                ? "Become an agent"
-                : row.label}
-            </Text>
+            <Text style={styles.rowLabel}>{row.label}</Text>
             <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
           </Pressable>
         ))}

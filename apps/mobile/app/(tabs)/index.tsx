@@ -17,6 +17,7 @@ import { ListingFeed } from "../../components/ListingFeed";
 import { SearchOverlay } from "../../components/SearchOverlay";
 import type { ListingFilters } from "../../services/listings";
 import { useLocationStore } from "../../store/location-store";
+import { FloatingCreateButton } from "../../components/FloatingCreateButton";
 
 export default function HomeScreen() {
   const queryClient = useQueryClient();
@@ -104,6 +105,7 @@ export default function HomeScreen() {
           <ListingFeed type="HOUSEHOLD" horizontal />
         </ScrollView>
       )}
+      <FloatingCreateButton />
       <SearchOverlay
         visible={searchOpen}
         onClose={() => setSearchOpen(false)}

@@ -34,7 +34,7 @@ export class SelfHostedMediaProvider implements StorageProvider {
     this.folderPath = config.get<string>('media.folderPath') || undefined;
   }
 
-  async uploadImage(file: {
+  async uploadMedia(file: {
     buffer: Buffer;
     mimetype: string;
     originalname: string;
@@ -76,7 +76,7 @@ export class SelfHostedMediaProvider implements StorageProvider {
       this.logger.error(
         `Media service rejected upload (${response.status}): ${reason.slice(0, 300)}`,
       );
-      throw new BadGatewayException('Media service rejected the image upload');
+      throw new BadGatewayException('Media service rejected the media upload');
     }
 
     const asset = (await response.json()) as MediaUploadResponse;
@@ -85,6 +85,10 @@ export class SelfHostedMediaProvider implements StorageProvider {
       publicId: asset.id,
       format: file.mimetype.split('/')[1],
     };
+  }
+
+  uploadImage(file: { buffer: Buffer; mimetype: string; originalname: string }) {
+    return this.uploadMedia(file);
   }
 }
 

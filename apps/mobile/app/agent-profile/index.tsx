@@ -15,7 +15,11 @@ import { Button } from "../../components/Button";
 import { COLORS } from "../../constants";
 import { useAuth } from "../../hooks/useAuth";
 import { fetchCurrentUser } from "../../services/auth";
-import { fetchMyAgentProfile, saveAgentProfile } from "../../services/agents";
+import {
+  fetchMyAgentProfile,
+  saveAgentProfile,
+  setAccountMode,
+} from "../../services/agents";
 import { getStoredRefreshToken, useAuthStore } from "../../store/auth-store";
 import { getApiErrorMessage } from "../../utils/errors";
 
@@ -74,7 +78,23 @@ export default function AgentProfileScreen() {
       ),
   });
 
-  const isAgent = user?.role === "AGENT" || Boolean(profile.data);
+  const modeMutation = useMutation({
+    mutationFn: () => setAccountMode("USER"),
+    onSuccess: async () => {
+      const updatedUser = await fetchCurrentUser();
+      const accessToken = useAuthStore.getState().accessToken;
+      const refreshToken = await getStoredRefreshToken();
+      if (accessToken && refreshToken)
+        await useAuthStore
+          .getState()
+          .setSession({ user: updatedUser, accessToken, refreshToken });
+      Alert.alert("Personal mode enabled", "Your agent profile and listings are preserved.");
+    },
+    onError: (error: unknown) =>
+      Alert.alert("Could not switch mode", getApiErrorMessage(error, "Please try again.")),
+  });
+
+  const isAgent = user?.role === "AGENT";
   if (!isAuthenticated)
     return (
       <View style={styles.center}>
@@ -185,6 +205,12 @@ export default function AgentProfileScreen() {
             : "Not provided"}
         </Text>
       </View>
+      <Button
+        label="Switch to personal mode"
+        variant="outline"
+        loading={modeMutation.isPending}
+        onPress={() => modeMutation.mutate()}
+      />
     </ScrollView>
   );
 }

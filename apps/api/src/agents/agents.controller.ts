@@ -12,6 +12,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import type { JwtAccessPayload } from '../auth/types/jwt-payload.type';
 import { AgentProfileDto } from './dto/agent-profile.dto';
+import { AccountModeDto } from './dto/account-mode.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { AgentsService } from './agents.service';
 
@@ -47,6 +48,12 @@ export class AgentsController {
     @Body() dto: AgentProfileDto,
   ) {
     return this.agents.upsert(user.sub, dto);
+  }
+  @Post('me/mode') setMode(
+    @CurrentUser() user: JwtAccessPayload,
+    @Body() dto: AccountModeDto,
+  ) {
+    return this.agents.setMode(user.sub, dto.mode);
   }
   @Post(':id/ratings') rate(
     @CurrentUser() user: JwtAccessPayload,

@@ -8,6 +8,7 @@ import { COLORS } from "../../constants";
 import type { ListingFilters } from "../../services/listings";
 import type { LandTenure } from "../../types";
 import { useLocationStore } from "../../store/location-store";
+import { FloatingCreateButton } from "../../components/FloatingCreateButton";
 
 const TENURES: { label: string; value?: LandTenure }[] = [
   { label: "All" },
@@ -64,6 +65,7 @@ export default function LandScreen() {
         </View>
       )}
       <ListingFeed type="LAND" tenure={selected} filters={searchFilters} />
+      <FloatingCreateButton type="LAND" />
       <SearchOverlay
         visible={searchOpen}
         type="LAND"

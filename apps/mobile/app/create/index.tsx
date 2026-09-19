@@ -22,7 +22,7 @@ import {
   createListing,
   fetchListing,
   updateListing,
-  uploadImage,
+  uploadMedia,
 } from "../../services/listings";
 import type {
   AgencyFeeType,
@@ -90,6 +90,8 @@ const HOUSEHOLD_CATEGORIES: { label: string; value: HouseholdCategory }[] = [
   { label: "Office furniture", value: "OFFICE_FURNITURE" },
   { label: "Other", value: "OTHER" },
 ];
+
+type ListingMediaDraft = { uri: string; mediaType: "IMAGE" | "VIDEO" };
 
 function ChoiceField<T extends string>({
   label,
@@ -181,7 +183,7 @@ export default function CreateListingScreen() {
   const [price, setPrice] = useState("");
   const [selectedLocation, setSelectedLocation] =
     useState<LocationSuggestion | null>(null);
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<ListingMediaDraft[]>([]);
   const [propertyType, setPropertyType] = useState<PropertyType>("APARTMENT");
   const [offerType, setOfferType] = useState<PropertyOfferType>("RENT");
   const [rentPeriod, setRentPeriod] = useState<RentPeriod>("ANNUALLY");
@@ -246,7 +248,7 @@ export default function CreateListingScreen() {
         longitude: listing.longitude,
       });
     }
-    setPhotos(listing.images.map((image) => image.url));
+    setPhotos(listing.images.map((image) => ({ uri: image.url, mediaType: image.mediaType || "IMAGE" })));
     if (listing.propertyDetails) {
       setPropertyType(listing.propertyDetails.propertyType);
       setOfferType(listing.propertyDetails.offerType || "RENT");
@@ -293,15 +295,38 @@ export default function CreateListingScreen() {
     });
     if (!result.canceled)
       setPhotos((current) =>
-        [...current, ...result.assets.map((asset) => asset.uri)].slice(0, 5),
+        [...current, ...result.assets.map((asset) => ({ uri: asset.uri, mediaType: "IMAGE" as const }))].slice(0, 5),
       );
+  };
+
+  const pickVideo = async () => {
+    if (photos.some((item) => item.mediaType === "VIDEO")) {
+      Alert.alert("Video limit", "Only one video is allowed per listing.");
+      return;
+    }
+    if (photos.length >= 5) {
+      Alert.alert("Media limit", "You can add up to five media items.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      videoMaxDuration: 60,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0])
+      setPhotos((current) => [...current, { uri: result.assets[0].uri, mediaType: "VIDEO" }]);
   };
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const images = await Promise.all(
-        photos.map((uri) => (uri.startsWith("http") ? uri : uploadImage(uri))),
+      const media = await Promise.all(
+        photos.map(async (item) => ({
+          url: item.uri.startsWith("http") ? item.uri : await uploadMedia(item.uri, item.mediaType === "VIDEO" ? "video/mp4" : "image/jpeg"),
+          mediaType: item.mediaType,
+        })),
       );
+      if (!media.length || media[0].mediaType !== "IMAGE")
+        throw new Error("Add an image in the first media slot before publishing.");
       const details =
         type === "PROPERTY"
           ? {
@@ -356,7 +381,7 @@ export default function CreateListingScreen() {
         formattedAddress: selectedLocation?.formattedAddress || customLocationText.trim() || undefined,
         locationProvider: selectedLocation?.provider,
         locationPlaceId: selectedLocation?.id,
-        images,
+        media,
         ...details,
       };
       return isEditing
@@ -400,6 +425,8 @@ export default function CreateListingScreen() {
     !title.trim() ||
     !description.trim() ||
     !parseAmountInput(price) ||
+    !photos.length ||
+    photos[0]?.mediaType !== "IMAGE" ||
     (!selectedLocation && !customLocationText.trim()) ||
     (type === "PROPERTY" &&
       agencyFeeType === "PERCENTAGE" &&
@@ -695,7 +722,7 @@ export default function CreateListingScreen() {
           <View>
             <Text style={styles.sectionTitle}>Photos</Text>
             <Text style={styles.note}>
-              Up to 5. The first photo is the search cover.
+              Up to 5 items. Slot 1 must be an image cover; only one video is allowed.
             </Text>
           </View>
           <Text style={styles.photoCount}>{photos.length}/5</Text>
@@ -705,9 +732,16 @@ export default function CreateListingScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.photoList}
         >
-          {photos.map((uri, index) => (
-            <View key={`${uri}-${index}`} style={styles.photoItem}>
-              <Image source={{ uri }} style={styles.photo} contentFit="cover" />
+          {photos.map((item, index) => (
+            <View key={`${item.uri}-${index}`} style={styles.photoItem}>
+              {item.mediaType === "VIDEO" ? (
+                <View style={[styles.photo, styles.videoPreview]}>
+                  <Ionicons name="videocam" size={28} color={COLORS.text} />
+                  <Text style={styles.addPhotoText}>Video</Text>
+                </View>
+              ) : (
+                <Image source={{ uri: item.uri }} style={styles.photo} contentFit="cover" />
+              )}
               {index === 0 && <Text style={styles.coverBadge}>Cover</Text>}
               <Pressable
                 style={styles.removePhoto}
@@ -722,10 +756,18 @@ export default function CreateListingScreen() {
             </View>
           ))}
           {photos.length < 5 && (
-            <Pressable style={styles.addPhoto} onPress={pickPhotos}>
-              <Ionicons name="camera-outline" size={26} color={COLORS.text} />
-              <Text style={styles.addPhotoText}>Add photos</Text>
-            </Pressable>
+            <>
+              <Pressable style={styles.addPhoto} onPress={pickPhotos}>
+                <Ionicons name="camera-outline" size={26} color={COLORS.text} />
+                <Text style={styles.addPhotoText}>Add photos</Text>
+              </Pressable>
+              {!photos.some((item) => item.mediaType === "VIDEO") && (
+                <Pressable style={styles.addPhoto} onPress={pickVideo}>
+                  <Ionicons name="videocam-outline" size={26} color={COLORS.text} />
+                  <Text style={styles.addPhotoText}>Add video</Text>
+                </Pressable>
+              )}
+            </>
           )}
         </ScrollView>
       </View>
@@ -873,6 +915,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceElevated,
   },
   photo: { width: "100%", height: "100%" },
+  videoPreview: { backgroundColor: COLORS.surface, alignItems: "center", justifyContent: "center", gap: 5 },
   coverBadge: {
     position: "absolute",
     left: 6,

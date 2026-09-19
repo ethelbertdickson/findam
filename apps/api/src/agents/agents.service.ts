@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AgentProfileDto } from './dto/agent-profile.dto';
+import { AccountModeDto } from './dto/account-mode.dto';
 import { CreateRatingDto } from './dto/create-rating.dto';
 
 const profileInclude = {
@@ -63,6 +64,30 @@ export class AgentsService {
         create: { userId, ...profile },
         update: profile,
         include: profileInclude,
+      });
+    });
+  }
+
+  async setMode(userId: string, mode: AccountModeDto['mode']) {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true },
+      });
+      if (!user) throw new NotFoundException('User not found');
+      if (user.role === 'ADMIN') return user;
+
+      if (mode === 'AGENT') {
+        await tx.agentProfile.upsert({
+          where: { userId },
+          create: { userId },
+          update: {},
+        });
+      }
+
+      return tx.user.update({
+        where: { id: userId },
+        data: { role: mode },
       });
     });
   }

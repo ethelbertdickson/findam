@@ -36,3 +36,8 @@ export async function saveAgentProfile(input: {
   const { data } = await apiClient.post<Agent>("/agents/me", input);
   return data;
 }
+
+export async function setAccountMode(mode: "USER" | "AGENT") {
+  const { data } = await apiClient.post("/agents/me/mode", { mode });
+  return data;
+}

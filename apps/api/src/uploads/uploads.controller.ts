@@ -23,9 +23,9 @@ export class UploadsController {
   })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 8 * 1024 * 1024 },
+      limits: { fileSize: 80 * 1024 * 1024 },
       fileFilter: (_request, file, callback) =>
-        callback(null, file.mimetype.startsWith('image/')),
+        callback(null, file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')),
     }),
   )
   upload(
@@ -36,7 +36,7 @@ export class UploadsController {
       originalname: string;
     },
   ) {
-    if (!file) throw new BadRequestException('An image file is required');
+    if (!file) throw new BadRequestException('An image or video file is required');
     return this.uploads.upload(file);
   }
 }

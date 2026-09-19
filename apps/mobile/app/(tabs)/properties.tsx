@@ -8,6 +8,7 @@ import { COLORS } from "../../constants";
 import type { ListingFilters } from "../../services/listings";
 import type { PropertyType } from "../../types";
 import { useLocationStore } from "../../store/location-store";
+import { FloatingCreateButton } from "../../components/FloatingCreateButton";
 
 const PROPERTY_TYPES: { label: string; value?: PropertyType }[] = [
   { label: "All" },
@@ -92,6 +93,7 @@ export default function PropertiesScreen() {
         showPropertyMeta
         filters={searchFilters}
       />
+      <FloatingCreateButton type="PROPERTY" />
       <SearchOverlay
         visible={searchOpen}
         type="PROPERTY"

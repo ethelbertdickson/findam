@@ -25,7 +25,17 @@ import {
   PropertyType,
   PropertyOfferType,
   RentPeriod,
+  ListingMediaType,
 } from '@prisma/client';
+
+export class ListingMediaDto {
+  @ApiProperty()
+  @IsUrl()
+  url!: string;
+  @ApiProperty({ enum: ListingMediaType })
+  @IsEnum(ListingMediaType)
+  mediaType!: ListingMediaType;
+}
 
 export class PropertyDetailsDto {
   @ApiProperty({ enum: PropertyType })
@@ -209,6 +219,13 @@ export class CreateListingDto {
   @ArrayMaxSize(5)
   @IsUrl({}, { each: true })
   images?: string[];
+  @ApiPropertyOptional({ type: [ListingMediaDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @ValidateNested({ each: true })
+  @Type(() => ListingMediaDto)
+  media?: ListingMediaDto[];
   @ApiPropertyOptional({ type: PropertyDetailsDto })
   @IsOptional()
   @ValidateNested()

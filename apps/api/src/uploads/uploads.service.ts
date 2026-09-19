@@ -20,6 +20,10 @@ export class UploadsService {
   }
 
   upload(file: { buffer: Buffer; mimetype: string; originalname: string }) {
-    return this.provider.uploadImage(file);
+    if (typeof this.provider.uploadMedia === 'function')
+      return this.provider.uploadMedia(file);
+    if (typeof this.provider.uploadImage === 'function')
+      return this.provider.uploadImage(file);
+    throw new BadRequestException('Media storage provider cannot upload files');
   }
 }

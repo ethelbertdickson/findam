@@ -8,6 +8,7 @@ import { COLORS } from "../../constants";
 import type { ListingFilters } from "../../services/listings";
 import { useLocationStore } from "../../store/location-store";
 import type { HouseholdCategory } from "../../types";
+import { FloatingCreateButton } from "../../components/FloatingCreateButton";
 
 const CATEGORIES: { label: string; value?: HouseholdCategory }[] = [
   { label: "All" },
@@ -79,6 +80,7 @@ export default function HouseholdScreen() {
         category={selected}
         filters={searchFilters}
       />
+      <FloatingCreateButton type="HOUSEHOLD" />
       <SearchOverlay
         visible={searchOpen}
         type="HOUSEHOLD"
