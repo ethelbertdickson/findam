@@ -351,6 +351,13 @@ export class AuthService {
     return this.google(tokenResponse.id_token);
   }
 
+  googleDesktopConfig() {
+    const clientId = this.configService.get<string>('google.desktopClientId');
+    if (!clientId)
+      throw new ServiceUnavailableException('Desktop Google sign-in is not configured');
+    return { clientId };
+  }
+
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const { accessToken, refreshToken: rotatedRefreshToken } =
       await this.refreshWithUser(refreshToken);

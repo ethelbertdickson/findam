@@ -77,6 +77,14 @@ export class AuthController {
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Get('google/desktop/config')
+  @ApiOperation({ summary: 'Get the public ProjectorPro desktop OAuth client ID' })
+  googleDesktopConfig() {
+    return this.authService.googleDesktopConfig();
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('google/desktop')
   @ApiOperation({ summary: 'Exchange a ProjectorPro desktop Google OAuth code' })
