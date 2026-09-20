@@ -41,6 +41,7 @@ export interface MediaAsset {
   kind: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'OTHER';
   sizeBytes: number;
   urlPath: string;
+  thumbnailPath?: string;
   createdAt: string;
   folder: { id: string; name: string; path: string } | null;
 }
@@ -145,6 +146,13 @@ export function uploadMediaAsset(
     method: 'POST',
     headers: { 'X-CSRF-Token': csrfToken },
     body: formData,
+  });
+}
+
+export function deleteMediaAsset(id: string, csrfToken: string) {
+  return mediaRequest<{ deleted: true }>(`/assets/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-CSRF-Token': csrfToken },
   });
 }
 

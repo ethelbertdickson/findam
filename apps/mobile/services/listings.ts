@@ -100,6 +100,10 @@ export async function updateListing(id: string, input: ListingInput) {
   return data;
 }
 
+export async function deleteListing(id: string) {
+  await apiClient.delete(`/listings/${id}`);
+}
+
 export async function uploadImage(uri: string) {
   const uploaded = await uploadMedia(uri, "image/jpeg");
   return uploaded.url;

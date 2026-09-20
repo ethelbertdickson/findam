@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { MediaAssetKind, Prisma } from "@prisma/client";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, resolve } from "node:path";
@@ -162,8 +163,16 @@ export class MediaService {
       }),
       this.prisma.mediaAsset.count({ where }),
     ]);
+    const storagePath = resolve(process.env.MEDIA_STORAGE_PATH ?? "./storage");
+    const itemsWithThumbnails = items.map((item) => {
+      if (item.kind !== MediaAssetKind.VIDEO) return item;
+      const thumbnailFilename = item.storedFilename.replace(/\.[^.]+$/, ".jpg");
+      return existsSync(resolve(storagePath, thumbnailFilename))
+        ? { ...item, thumbnailPath: `/media/${thumbnailFilename}` }
+        : item;
+    });
     return {
-      items,
+      items: itemsWithThumbnails,
       page: query.page,
       limit: query.limit,
       total,
@@ -224,6 +233,19 @@ export class MediaService {
       if (thumbnailFilename) await unlink(resolve(storagePath, thumbnailFilename)).catch(() => undefined);
       throw error;
     }
+  }
+
+  async deleteAsset(id: string) {
+    const asset = await this.prisma.mediaAsset.findFirst({ where: { id, deletedAt: null } });
+    if (!asset) throw new NotFoundException("Media asset not found");
+    const storagePath = resolve(process.env.MEDIA_STORAGE_PATH ?? "./storage");
+    await unlink(resolve(storagePath, asset.storedFilename)).catch(() => undefined);
+    if (asset.kind === MediaAssetKind.VIDEO) {
+      const thumbnailFilename = asset.storedFilename.replace(/\.[^.]+$/, ".jpg");
+      await unlink(resolve(storagePath, thumbnailFilename)).catch(() => undefined);
+    }
+    await this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { deleted: true };
   }
 
   private async getProject(projectSlug: string) {

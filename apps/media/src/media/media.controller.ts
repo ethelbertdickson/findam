@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  Delete,
   Controller,
   Get,
   Param,
@@ -62,6 +63,12 @@ export class MediaController {
   @Get("assets")
   listAssets(@Query() query: AssetsQueryDto) {
     return this.media.listAssets(query);
+  }
+
+  @Delete("assets/:id")
+  @UseGuards(MediaCsrfGuard)
+  deleteAsset(@Param("id") id: string) {
+    return this.media.deleteAsset(id);
   }
 
   @Post("assets")

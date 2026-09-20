@@ -55,6 +55,7 @@ import {
   getMediaFolders,
   getMediaProjects,
   uploadMediaAsset,
+  deleteMediaAsset,
   type MediaAsset,
   type MediaFolder,
   type MediaProject,
@@ -162,6 +163,16 @@ export function MediaLibraryPage({
       );
       setFolderName('');
       setFolderDialogOpen(false);
+      await load();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    }
+  }
+
+  async function onDeleteAsset(asset: MediaAsset) {
+    if (!window.confirm(`Delete “${asset.originalFilename}”? This removes the stored file.`)) return;
+    try {
+      await deleteMediaAsset(asset.id, csrfToken);
       await load();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -286,7 +297,7 @@ export function MediaLibraryPage({
             <div className={viewMode === 'list' ? 'divide-y divide-border/70' : viewMode === 'mosaic' ? 'grid auto-flow-dense auto-rows-[240px] grid-cols-12 gap-4 p-4' : 'grid auto-flow-dense auto-rows-[430px] grid-cols-12 gap-4 p-4'}>
               {viewMode === 'list' ? <div className="hidden grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] gap-4 bg-muted/20 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid"><span>Display name</span><span>Containing folder</span><span>Asset type</span><span>Format</span><span>Size</span><span>Dimensions</span><span>Delivery</span><span>Access</span><span /></div> : null}
               {assets.map((asset) => (
-                <AssetCard key={asset.id} asset={asset} viewMode={viewMode} />
+                <AssetCard key={asset.id} asset={asset} viewMode={viewMode} onDelete={() => void onDeleteAsset(asset)} />
               ))}
             </div>
           ) : (
@@ -338,10 +349,12 @@ function AssetCard({
   asset,
   viewMode,
   compact = false,
+  onDelete,
 }: {
   asset: MediaAsset;
   viewMode: 'list' | 'cards' | 'mosaic';
   compact?: boolean;
+  onDelete: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [dimensions, setDimensions] = useState('—');
@@ -372,7 +385,7 @@ function AssetCard({
       <article className="group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20">
         <div className="flex min-w-0 items-center gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-muted/40">
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="grid size-full place-items-center" onClick={() => setPreviewOpen(true)} aria-label="Play video"><Video className="size-5 text-muted-foreground" /></button> : <Icon className="size-5 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline /></button> : <Icon className="size-5 text-muted-foreground" />}
         </div>
         <div className="min-w-0"><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></div>
         </div>
@@ -383,15 +396,15 @@ function AssetCard({
         <span className="text-xs text-muted-foreground">{dimensions}</span>
         <span className="text-xs text-muted-foreground">Upload</span>
         <span className="text-xs text-muted-foreground">Public</span>
-        <AssetActions asset={asset} copied={copied} onCopy={copyUrl} inline />
+        <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} inline />
       </article>
     );
   }
   return (
     <article style={viewMode === 'mosaic' || viewMode === 'cards' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex flex-col overflow-hidden border border-border/80 bg-background/30 ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
-        {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} className="size-full object-contain" preload="metadata" muted playsInline /></button> : <Icon className="size-7 text-muted-foreground" />}
-        <AssetActions asset={asset} copied={copied} onCopy={copyUrl} />
+        {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline /></button> : <Icon className="size-7 text-muted-foreground" />}
+        <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} />
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
       </div>
@@ -419,10 +432,9 @@ function AssetCard({
   );
 }
 
-function AssetActions({ asset, copied, onCopy, inline = false }: { asset: MediaAsset; copied: boolean; onCopy: () => Promise<void>; inline?: boolean }) {
+function AssetActions({ asset, copied, onCopy, onDelete, inline = false }: { asset: MediaAsset; copied: boolean; onCopy: () => Promise<void>; onDelete: () => void; inline?: boolean }) {
   const [open, setOpen] = useState(false);
   const disabledActions = [
-    ['Delete', Trash2],
     ['Download', Download],
     ['Rename', Pencil],
     ['Replace', Replace],
@@ -437,6 +449,7 @@ function AssetActions({ asset, copied, onCopy, inline = false }: { asset: MediaA
         {open ? <div className={`absolute right-0 top-9 flex gap-1 rounded-full bg-background/75 p-1 shadow-xl backdrop-blur-sm ${inline ? 'flex-row' : 'flex-col'}`}>
           <a href={asset.urlPath} target="_blank" rel="noreferrer" aria-label="Open asset" data-tooltip="Open asset" className="media-tooltip grid size-8 place-items-center rounded-full text-foreground hover:bg-muted"><ExternalLink className="size-3.5" /></a>
           <button type="button" onClick={() => void onCopy()} aria-label="Copy URL" data-tooltip="Copy URL" className="media-tooltip grid size-8 place-items-center rounded-full text-foreground hover:bg-muted"><Copy className="size-3.5" /></button>
+          <button type="button" onClick={() => { setOpen(false); onDelete(); }} aria-label="Delete media" data-tooltip="Delete media" className="media-tooltip grid size-8 place-items-center rounded-full text-destructive hover:bg-destructive/10"><Trash2 className="size-3.5" /></button>
           {disabledActions.map(([label, ActionIcon]) => <button key={label} type="button" disabled aria-label={`${label} (coming soon)`} data-tooltip={`${label} (coming soon)`} className="media-tooltip grid size-8 place-items-center rounded-full text-muted-foreground opacity-40"><ActionIcon className="size-3.5" /></button>)}
         </div> : null}
       </div>

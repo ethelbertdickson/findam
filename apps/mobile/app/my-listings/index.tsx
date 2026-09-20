@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as React from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Linking,
   Pressable,
@@ -15,7 +17,7 @@ import {
 import { ListingCard } from "../../components/ListingCard";
 import { locationLabel } from "../../components/ListingFeed";
 import { COLORS } from "../../constants";
-import { fetchMyListings } from "../../services/listings";
+import { deleteListing, fetchMyListings } from "../../services/listings";
 import { fetchMyRequests, type UserRequest } from "../../services/requests";
 import { fetchMyProfessional } from "../../services/professionals";
 import { fetchMyServices } from "../../services/services";
@@ -55,6 +57,11 @@ export default function MyListingsScreen() {
         : undefined,
     }),
   });
+  const queryClient = useQueryClient();
+  const removeListing = (id: string) => Alert.alert("Delete listing?", "This will remove the listing from public results.", [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: async () => { try { await deleteListing(id); await queryClient.invalidateQueries({ queryKey: ["my-listings"] }); } catch { Alert.alert("Could not delete listing", "Please try again."); } } },
+  ]);
   // React Query passes a context object to queryFn. Do not forward that
   // internal object as HTTP query parameters (client/queryKey/signal).
   const requests = useQuery({ queryKey: ["my-requests"], queryFn: () => fetchMyRequests() });
@@ -120,6 +127,10 @@ export default function MyListingsScreen() {
             >
               <Ionicons name="create-outline" size={17} color={COLORS.text} />
               <Text style={styles.editText}>Edit listing</Text>
+            </Pressable>
+            <Pressable style={styles.deleteButton} onPress={() => removeListing(item.id)}>
+              <Ionicons name="trash-outline" size={17} color={COLORS.danger} />
+              <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
           </View>
         </View>
@@ -225,6 +236,8 @@ const styles = StyleSheet.create({
     borderRadius: 9,
   },
   editText: { color: COLORS.text, fontWeight: "700", fontSize: 13 },
+  deleteButton: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 9, paddingHorizontal: 12, borderWidth: 1, borderColor: `${COLORS.danger}66`, borderRadius: 9 },
+  deleteText: { color: COLORS.danger, fontWeight: "700", fontSize: 13 },
   headerTools: { gap: 10 },
   searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: COLORS.border, borderRadius: 11, backgroundColor: COLORS.surface, paddingHorizontal: 12 },
   searchInput: { flex: 1, color: COLORS.text, paddingVertical: 11 },
