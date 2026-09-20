@@ -67,6 +67,7 @@ export interface ListingImage {
   url: string;
   position: number;
   mediaType?: "IMAGE" | "VIDEO";
+  thumbnailUrl?: string;
 }
 
 export interface LocationSuggestion {

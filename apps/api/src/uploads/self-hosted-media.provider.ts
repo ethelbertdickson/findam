@@ -11,6 +11,7 @@ interface MediaUploadResponse {
   id: string;
   urlPath: string;
   mimeType: string;
+  thumbnailPath?: string;
 }
 
 @Injectable()
@@ -83,6 +84,9 @@ export class SelfHostedMediaProvider implements StorageProvider {
     const asset = (await response.json()) as MediaUploadResponse;
     return {
       url: new URL(asset.urlPath, `${this.publicUrl}/`).toString(),
+      thumbnailUrl: asset.thumbnailPath
+        ? new URL(asset.thumbnailPath, `${this.publicUrl}/`).toString()
+        : undefined,
       publicId: asset.id,
       format: file.mimetype.split('/')[1],
     };

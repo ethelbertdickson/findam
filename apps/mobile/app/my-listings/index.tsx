@@ -55,7 +55,9 @@ export default function MyListingsScreen() {
         : undefined,
     }),
   });
-  const requests = useQuery({ queryKey: ["my-requests"], queryFn: fetchMyRequests });
+  // React Query passes a context object to queryFn. Do not forward that
+  // internal object as HTTP query parameters (client/queryKey/signal).
+  const requests = useQuery({ queryKey: ["my-requests"], queryFn: () => fetchMyRequests() });
   const professional = useQuery({ queryKey: ["my-professional"], queryFn: fetchMyProfessional, retry: false });
   const services = useQuery({ queryKey: ["my-services"], queryFn: fetchMyServices });
   const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : undefined;

@@ -1,5 +1,6 @@
 export interface StoredImage {
   url: string;
+  thumbnailUrl?: string;
   publicId?: string;
   width?: number;
   height?: number;

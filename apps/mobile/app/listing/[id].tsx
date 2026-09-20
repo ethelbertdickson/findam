@@ -27,9 +27,9 @@ const readable = (value: string) =>
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-function ListingMediaView({ item, style }: { item: { url: string; mediaType?: "IMAGE" | "VIDEO" }; style: any }) {
+function ListingMediaView({ item, style }: { item: { url: string; mediaType?: "IMAGE" | "VIDEO"; thumbnailUrl?: string }; style: any }) {
   const player = useVideoPlayer(item.mediaType === "VIDEO" ? item.url : null, (instance) => {
-    instance.loop = true;
+    instance.loop = false;
   });
   if (item.mediaType === "VIDEO")
     return <VideoView player={player} style={style} nativeControls contentFit="contain" />;
@@ -149,7 +149,9 @@ export default function ListingDetailScreen() {
                       ]}
                     >
                       {image.mediaType === "VIDEO" ? (
-                        <View style={[styles.thumbnail, styles.videoThumbnail]}><Ionicons name="videocam" size={18} color={COLORS.text} /></View>
+                        image.thumbnailUrl
+                          ? <View style={styles.thumbnail}><Image source={{ uri: image.thumbnailUrl }} style={styles.thumbnail} contentFit="cover" /><View style={styles.videoBadge}><Ionicons name="play" size={16} color={COLORS.text} /></View></View>
+                          : <View style={[styles.thumbnail, styles.videoThumbnail]}><Ionicons name="videocam" size={18} color={COLORS.text} /></View>
                       ) : <Image source={{ uri: image.url }} style={styles.thumbnail} contentFit="cover" />}
                     </Pressable>
                   ))}
@@ -344,6 +346,7 @@ const styles = StyleSheet.create({
   thumbnailActive: { borderColor: COLORS.primary },
   thumbnail: { width: "100%", height: "100%" },
   videoThumbnail: { backgroundColor: COLORS.surface, alignItems: "center", justifyContent: "center" },
+  videoBadge: { position: "absolute", left: "50%", top: "50%", transform: [{ translateX: -16 }, { translateY: -16 }], width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" },
   title: {
     fontSize: 22,
     fontWeight: "800",

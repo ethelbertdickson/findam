@@ -643,6 +643,7 @@ model ListingImage {
   publicId  String?
   position  Int     @default(0)
   mediaType ListingMediaType @default(IMAGE)
+  thumbnailUrl String?
 
   createdAt DateTime @default(now())
 

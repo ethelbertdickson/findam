@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import { Platform } from "react-native";
 import type {
   HouseholdCategory,
   Listing,
@@ -83,7 +84,7 @@ export interface ListingInput {
   locationProvider?: string;
   locationPlaceId?: string;
   images?: string[];
-  media?: { url: string; mediaType: "IMAGE" | "VIDEO" }[];
+  media?: { url: string; mediaType: "IMAGE" | "VIDEO"; thumbnailUrl?: string }[];
   propertyDetails?: Record<string, unknown>;
   landDetails?: Record<string, unknown>;
   householdDetails?: Record<string, unknown>;
@@ -100,7 +101,8 @@ export async function updateListing(id: string, input: ListingInput) {
 }
 
 export async function uploadImage(uri: string) {
-  return uploadMedia(uri, "image/jpeg");
+  const uploaded = await uploadMedia(uri, "image/jpeg");
+  return uploaded.url;
 }
 
 export async function uploadMedia(uri: string, mimeType?: string) {
@@ -108,18 +110,23 @@ export async function uploadMedia(uri: string, mimeType?: string) {
   const isVideo = mimeType?.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(uri);
   const type = mimeType || (isVideo ? "video/mp4" : "image/jpeg");
   const extension = type.split("/")[1] || (isVideo ? "mp4" : "jpg");
-  body.append("file", {
-    uri,
-    name: `listing-${Date.now()}.${extension}`,
-    type,
-  } as any);
-  const { data } = await apiClient.post<{ url: string }>("/uploads", body, {
+  const filename = `listing-${Date.now()}.${extension}`;
+  if (Platform.OS === "web") {
+    // Expo web returns blob/object URLs. Browser FormData needs the actual
+    // Blob, not React Native's native { uri, name, type } file shape.
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    body.append("file", blob, filename);
+  } else {
+    body.append("file", { uri, name: filename, type } as any);
+  }
+  const { data } = await apiClient.post<{ url: string; thumbnailUrl?: string }>("/uploads", body, {
     headers: { "Content-Type": "multipart/form-data" },
     // Video uploads are compressed by the media service before the URL is
     // returned. Give that server-side transcode enough time to complete.
     timeout: isVideo ? 120_000 : 30_000,
   });
-  return data.url;
+  return data;
 }
 
 export async function fetchMyListings(filters: Pick<ListingFilters, "q" | "type" | "createdAfter"> = {}) {

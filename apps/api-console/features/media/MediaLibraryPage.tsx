@@ -372,7 +372,7 @@ function AssetCard({
       <article className="group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20">
         <div className="flex min-w-0 items-center gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-muted/40">
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : <Icon className="size-5 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="grid size-full place-items-center" onClick={() => setPreviewOpen(true)} aria-label="Play video"><Video className="size-5 text-muted-foreground" /></button> : <Icon className="size-5 text-muted-foreground" />}
         </div>
         <div className="min-w-0"><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></div>
         </div>
@@ -390,7 +390,7 @@ function AssetCard({
   return (
     <article style={viewMode === 'mosaic' || viewMode === 'cards' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex flex-col overflow-hidden border border-border/80 bg-background/30 ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
-        {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : <Icon className="size-7 text-muted-foreground" />}
+        {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} className="size-full object-contain" preload="metadata" muted playsInline /></button> : <Icon className="size-7 text-muted-foreground" />}
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} />
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
@@ -408,8 +408,10 @@ function AssetCard({
         <dialog open className="fixed inset-0 z-[100] m-0 grid h-full w-full place-items-center border-0 bg-black/80 p-6" aria-label={asset.originalFilename}>
           <button type="button" onClick={() => setPreviewOpen(false)} aria-label="Close preview" data-tooltip="Close" className="media-tooltip absolute right-5 top-5 grid size-10 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"><X /></button>
           <div className="max-h-full max-w-5xl">
-            {/* oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service. */}
-            <img src={asset.urlPath} alt={asset.originalFilename} className="max-h-[85vh] max-w-[90vw] object-contain" />
+            {asset.kind === 'VIDEO' ? <video src={asset.urlPath} controls autoPlay playsInline className="max-h-[85vh] max-w-[90vw]" /> : (
+              // oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service.
+              <img src={asset.urlPath} alt={asset.originalFilename} className="max-h-[85vh] max-w-[90vw] object-contain" />
+            )}
           </div>
         </dialog>
       ) : null}

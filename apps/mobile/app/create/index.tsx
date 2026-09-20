@@ -92,7 +92,7 @@ const HOUSEHOLD_CATEGORIES: { label: string; value: HouseholdCategory }[] = [
   { label: "Other", value: "OTHER" },
 ];
 
-type ListingMediaDraft = { uri: string; mediaType: "IMAGE" | "VIDEO" };
+type ListingMediaDraft = { uri: string; mediaType: "IMAGE" | "VIDEO"; thumbnailUrl?: string };
 
 function ChoiceField<T extends string>({
   label,
@@ -251,7 +251,7 @@ export default function CreateListingScreen() {
         longitude: listing.longitude,
       });
     }
-    setPhotos(listing.images.map((image) => ({ uri: image.url, mediaType: image.mediaType || "IMAGE" })));
+    setPhotos(listing.images.map((image) => ({ uri: image.url, mediaType: image.mediaType || "IMAGE", thumbnailUrl: image.thumbnailUrl })));
     if (listing.propertyDetails) {
       setPropertyType(listing.propertyDetails.propertyType);
       setOfferType(listing.propertyDetails.offerType || "RENT");
@@ -323,10 +323,14 @@ export default function CreateListingScreen() {
   const mutation = useMutation({
     mutationFn: async () => {
       const media = await Promise.all(
-        photos.map(async (item) => ({
-          url: item.uri.startsWith("http") ? item.uri : await uploadMedia(item.uri, item.mediaType === "VIDEO" ? "video/mp4" : "image/jpeg"),
+        photos.map(async (item) => {
+          const uploaded = item.uri.startsWith("http") ? { url: item.uri, thumbnailUrl: item.thumbnailUrl } : await uploadMedia(item.uri, item.mediaType === "VIDEO" ? "video/mp4" : "image/jpeg");
+          return {
+          url: uploaded.url,
+          thumbnailUrl: uploaded.thumbnailUrl,
           mediaType: item.mediaType,
-        })),
+          };
+        }),
       );
       if (!media.length || media[0].mediaType !== "IMAGE")
         throw new Error("Add an image in the first media slot before publishing.");
@@ -496,7 +500,7 @@ export default function CreateListingScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.choiceWrap}>
         {CURRENCIES.map((item) => (
           <Pressable key={item.code} onPress={() => setCurrencyCode(item.code)} style={[styles.choice, currencyCode === item.code && styles.choiceSelected]}>
-            <Text style={[styles.choiceText, currencyCode === item.code && styles.choiceTextSelected]}>{item.code}</Text>
+            <Text style={[styles.choiceText, currencyCode === item.code && styles.choiceTextSelected]}>{item.symbol}</Text>
           </Pressable>
         ))}
       </ScrollView>

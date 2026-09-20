@@ -186,18 +186,22 @@ export class MediaService {
     const folder = folderPath ? await this.getFolder(project.id, folderPath) : null;
     const processed = file.mimetype.startsWith("video/")
       ? await compressVideo(file)
-      : { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname };
+      : { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname, thumbnailBuffer: undefined };
     const id = randomUUID();
     const extension = safeExtension(processed.originalname, processed.mimetype);
     const storedFilename = `${id}${extension}`;
+    const thumbnailFilename = processed.thumbnailBuffer ? `${id}.jpg` : undefined;
     const storagePath = resolve(process.env.MEDIA_STORAGE_PATH ?? "./storage");
     await mkdir(storagePath, { recursive: true });
     await writeFile(resolve(storagePath, storedFilename), processed.buffer, {
       flag: "wx",
     });
+    if (thumbnailFilename) {
+      await writeFile(resolve(storagePath, thumbnailFilename), processed.thumbnailBuffer!, { flag: "wx" });
+    }
 
     try {
-      return await this.prisma.mediaAsset.create({
+      const asset = await this.prisma.mediaAsset.create({
         data: {
           id,
           projectId: project.id,
@@ -211,8 +215,13 @@ export class MediaService {
         },
         include: { folder: { select: { id: true, name: true, path: true } } },
       });
+      return {
+        ...asset,
+        ...(thumbnailFilename ? { thumbnailPath: `/media/${thumbnailFilename}` } : {}),
+      };
     } catch (error) {
       await unlink(resolve(storagePath, storedFilename)).catch(() => undefined);
+      if (thumbnailFilename) await unlink(resolve(storagePath, thumbnailFilename)).catch(() => undefined);
       throw error;
     }
   }
@@ -257,6 +266,7 @@ async function compressVideo(file: Express.Multer.File) {
   const workdir = await mkdtemp(resolve(tmpdir(), "findam-video-"));
   const input = resolve(workdir, "input");
   const output = resolve(workdir, "output.mp4");
+  const thumbnail = resolve(workdir, "thumbnail.jpg");
   try {
     await writeFile(input, file.buffer, { flag: "wx" });
     await execFileAsync("ffmpeg", [
@@ -272,12 +282,17 @@ async function compressVideo(file: Express.Multer.File) {
       output,
     ], { maxBuffer: 2 * 1024 * 1024 });
     const buffer = await readFile(output);
+    await execFileAsync("ffmpeg", [
+      "-y", "-ss", "0", "-i", input, "-frames:v", "1",
+      "-vf", "scale='min(640,iw)':-2", "-q:v", "4", thumbnail,
+    ], { maxBuffer: 2 * 1024 * 1024 });
+    const thumbnailBuffer = await readFile(thumbnail);
     // Keep the source when transcoding would make a small clip larger.
     // Larger uploads still use the normalized, compressed MP4 output.
     if (buffer.length >= file.buffer.length) {
-      return { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname };
+      return { buffer: file.buffer, mimetype: file.mimetype, originalname: file.originalname, thumbnailBuffer };
     }
-    return { buffer, mimetype: "video/mp4", originalname: `${file.originalname}.mp4` };
+    return { buffer, mimetype: "video/mp4", originalname: `${file.originalname}.mp4`, thumbnailBuffer };
   } catch {
     throw new BadRequestException("Video could not be compressed");
   } finally {

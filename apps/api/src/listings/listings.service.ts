@@ -48,7 +48,7 @@ export class ListingsService {
       throw new BadRequestException('The first listing media item must be an image');
     if (media.filter((item) => item.mediaType === ListingMediaType.VIDEO).length > 1)
       throw new BadRequestException('A listing can have only one video');
-    return media.map((item, position) => ({ url: item.url, position, mediaType: item.mediaType }));
+    return media.map((item, position) => ({ url: item.url, position, mediaType: item.mediaType, thumbnailUrl: item.thumbnailUrl }));
   }
 
   async findAll(query: ListingsQueryDto) {

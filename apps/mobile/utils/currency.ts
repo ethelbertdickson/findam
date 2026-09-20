@@ -1,24 +1,21 @@
 import type { Listing } from "../types";
 import type { CurrencyCode } from "../types";
 
-export const CURRENCIES: { code: CurrencyCode; label: string }[] = [
-  { code: "NGN", label: "Nigerian Naira" },
-  { code: "USD", label: "US Dollar" },
-  { code: "GBP", label: "British Pound" },
-  { code: "EUR", label: "Euro" },
-  { code: "CAD", label: "Canadian Dollar" },
-  { code: "AUD", label: "Australian Dollar" },
-  { code: "ZAR", label: "South African Rand" },
-  { code: "GHS", label: "Ghanaian Cedi" },
-  { code: "KES", label: "Kenyan Shilling" },
+export const CURRENCIES: { code: CurrencyCode; symbol: string; label: string }[] = [
+  { code: "NGN", symbol: "₦", label: "Nigerian Naira" },
+  { code: "USD", symbol: "$", label: "US Dollar" },
+  { code: "GBP", symbol: "£", label: "British Pound" },
+  { code: "EUR", symbol: "€", label: "Euro" },
+  { code: "CAD", symbol: "CA$", label: "Canadian Dollar" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar" },
+  { code: "ZAR", symbol: "R", label: "South African Rand" },
+  { code: "GHS", symbol: "GH₵", label: "Ghanaian Cedi" },
+  { code: "KES", symbol: "KSh", label: "Kenyan Shilling" },
 ];
 
 export function formatCurrency(value: number, currencyCode: CurrencyCode = "NGN") {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: currencyCode,
-    maximumFractionDigits: 2,
-  }).format(value);
+  const symbols: Record<CurrencyCode, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€", CAD: "CA$", AUD: "A$", ZAR: "R", GHS: "GH₵", KES: "KSh" };
+  return `${symbols[currencyCode] ?? currencyCode}${new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value)}`;
 }
 
 export function digitsOnly(value: string) {

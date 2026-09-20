@@ -36,6 +36,10 @@ export class ListingMediaDto {
   @ApiProperty({ enum: ListingMediaType })
   @IsEnum(ListingMediaType)
   mediaType!: ListingMediaType;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUrl()
+  thumbnailUrl?: string;
 }
 
 export class PropertyDetailsDto {
