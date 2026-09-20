@@ -25,6 +25,7 @@ import {
 } from './dto/password-reset.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { RegistrationCodeConfirmDto, RegistrationCodeRequestDto } from './dto/registration-verification.dto';
+import { GoogleDesktopAuthDto } from './dto/google-desktop-auth.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -72,6 +73,15 @@ export class AuthController {
   @ApiOperation({ summary: 'Create an account or log in with Google' })
   google(@Body() dto: GoogleAuthDto) {
     return this.authService.google(dto.idToken);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('google/desktop')
+  @ApiOperation({ summary: 'Exchange a ProjectorPro desktop Google OAuth code' })
+  googleDesktop(@Body() dto: GoogleDesktopAuthDto) {
+    return this.authService.googleDesktop(dto);
   }
 
   @Public()

@@ -21,6 +21,7 @@ import type {
 import { parseDurationMs } from './utils/duration.util';
 import type { PasswordResetConfirmDto } from './dto/password-reset.dto';
 import { OAuth2Client, type TokenPayload } from 'google-auth-library';
+import type { GoogleDesktopAuthDto } from './dto/google-desktop-auth.dto';
 
 const REFRESH_TOKEN_HASH_ROUNDS = 12;
 const PASSWORD_SALT_ROUNDS = 12;
@@ -274,7 +275,10 @@ export class AuthService {
 
   async google(idToken: string): Promise<AuthResult> {
     const audiences =
-      this.configService.get<string[]>('google.clientIds') ?? [];
+      [
+        ...(this.configService.get<string[]>('google.clientIds') ?? []),
+        this.configService.get<string>('google.desktopClientId'),
+      ].filter((clientId): clientId is string => Boolean(clientId));
     if (!audiences.length) {
       throw new ServiceUnavailableException('Google sign-in is not configured');
     }
@@ -311,6 +315,40 @@ export class AuthService {
 
     const tokens = await this.issueTokens(user.id, user.email, user.role);
     return { ...tokens, user: toPublicUser(user) };
+  }
+
+  async googleDesktop(dto: GoogleDesktopAuthDto): Promise<AuthResult> {
+    const configuredClientId = this.configService.get<string>('google.desktopClientId');
+    const clientSecret = this.configService.get<string>('google.desktopClientSecret');
+    if (!configuredClientId || !clientSecret)
+      throw new ServiceUnavailableException('Desktop Google sign-in is not configured');
+    if (dto.clientId !== configuredClientId)
+      throw new UnauthorizedException('Invalid desktop OAuth client');
+    if (!isAllowedDesktopRedirectUri(dto.redirectUri))
+      throw new BadRequestException('Invalid desktop OAuth redirect URI');
+
+    let response: Response;
+    try {
+      response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: dto.code,
+          client_id: configuredClientId,
+          client_secret: clientSecret,
+          code_verifier: dto.codeVerifier,
+          redirect_uri: dto.redirectUri,
+          grant_type: 'authorization_code',
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch {
+      throw new ServiceUnavailableException('Google sign-in is unavailable');
+    }
+    if (!response.ok) throw new UnauthorizedException('Invalid or expired Google authorization code');
+    const tokenResponse = (await response.json().catch(() => ({}))) as { id_token?: string };
+    if (!tokenResponse.id_token) throw new UnauthorizedException('Google sign-in did not return an ID token');
+    return this.google(tokenResponse.id_token);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -491,5 +529,17 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+}
+
+export function isAllowedDesktopRedirectUri(value: string) {
+  try {
+    const uri = new URL(value);
+    const loopback = uri.hostname === '127.0.0.1' || uri.hostname === 'localhost' || uri.hostname === '::1';
+    const port = Number(uri.port);
+    return uri.protocol === 'http:' && loopback && port >= 1 && port <= 65535 &&
+      /^\/oauth2\/callback\/?$/.test(uri.pathname) && !uri.username && !uri.password && !uri.search && !uri.hash;
+  } catch {
+    return false;
   }
 }

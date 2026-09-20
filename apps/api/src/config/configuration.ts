@@ -32,6 +32,8 @@ export default () => ({
       .split(',')
       .map((clientId) => clientId.trim())
       .filter(Boolean),
+    desktopClientId: process.env.GOOGLE_DESKTOP_CLIENT_ID,
+    desktopClientSecret: process.env.GOOGLE_DESKTOP_CLIENT_SECRET,
   },
   geoapify: {
     apiKey: process.env.GEOAPIFY_API_KEY,

@@ -91,6 +91,14 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  GOOGLE_DESKTOP_CLIENT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_DESKTOP_CLIENT_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
   DEEPGRAM_API_KEY?: string;
 
   @IsOptional()
@@ -120,6 +128,8 @@ export function validateEnv(config: Record<string, unknown>) {
     const requiredProductionSecrets = [
       ['DEEPGRAM_API_KEY', validatedConfig.DEEPGRAM_API_KEY],
       ['PAYSTACK_SECRET_KEY', validatedConfig.PAYSTACK_SECRET_KEY],
+      ['GOOGLE_DESKTOP_CLIENT_ID', validatedConfig.GOOGLE_DESKTOP_CLIENT_ID],
+      ['GOOGLE_DESKTOP_CLIENT_SECRET', validatedConfig.GOOGLE_DESKTOP_CLIENT_SECRET],
     ].filter(([, value]) => typeof value !== 'string' || value.trim().length === 0);
     if (requiredProductionSecrets.length > 0)
       throw new Error(`Production requires: ${requiredProductionSecrets.map(([name]) => name).join(', ')}`);
