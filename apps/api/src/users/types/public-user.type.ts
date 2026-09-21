@@ -1,11 +1,12 @@
 import type { User } from '@prisma/client';
 
-export type PublicUser = Omit<User, 'passwordHash' | 'googleId'>;
+export type PublicUser = Omit<User, 'passwordHash' | 'googleId' | 'avatarMediaId'>;
 
 export function toPublicUser(user: User): PublicUser {
   const {
     passwordHash: _passwordHash,
     googleId: _googleId,
+    avatarMediaId: _avatarMediaId,
     ...publicUser
   } = user;
   return publicUser;

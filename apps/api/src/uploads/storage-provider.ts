@@ -18,4 +18,5 @@ export interface StorageProvider {
     mimetype: string;
     originalname: string;
   }): Promise<StoredImage>;
+  deleteMedia?(publicId: string): Promise<void>;
 }

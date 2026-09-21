@@ -99,4 +99,13 @@ export class ProjectUploadsController {
     if (!file) throw new BadRequestException("A file is required");
     return this.media.upload(file, projectSlug, folderPath);
   }
+
+  @Delete(":projectSlug/assets/:id")
+  @UseGuards(ProjectApiKeyGuard)
+  deleteProjectAsset(
+    @Param("projectSlug") projectSlug: string,
+    @Param("id") id: string,
+  ) {
+    return this.media.deleteProjectAsset(projectSlug, id);
+  }
 }

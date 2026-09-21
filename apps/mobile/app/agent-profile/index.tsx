@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -14,7 +15,7 @@ import {
 import { Button } from "../../components/Button";
 import { COLORS } from "../../constants";
 import { useAuth } from "../../hooks/useAuth";
-import { fetchCurrentUser } from "../../services/auth";
+import { fetchCurrentUser, updateProfile } from "../../services/auth";
 import {
   fetchMyAgentProfile,
   saveAgentProfile,
@@ -22,6 +23,7 @@ import {
 } from "../../services/agents";
 import { getStoredRefreshToken, useAuthStore } from "../../store/auth-store";
 import { getApiErrorMessage } from "../../utils/errors";
+import { uploadImageAsset } from "../../services/listings";
 
 export default function AgentProfileScreen() {
   const { user, isAuthenticated } = useAuth();
@@ -36,8 +38,10 @@ export default function AgentProfileScreen() {
   const [whatsapp, setWhatsapp] = useState("");
   const [bio, setBio] = useState("");
   const [areas, setAreas] = useState("");
+  const [avatar, setAvatar] = useState(user?.avatarUrl || "");
 
   useEffect(() => {
+    if (user?.avatarUrl) setAvatar(user.avatarUrl);
     if (!profile.data) return;
     setAgencyName(profile.data.agencyName || "");
     setWhatsapp(profile.data.whatsapp || "");
@@ -45,20 +49,40 @@ export default function AgentProfileScreen() {
     setAreas(profile.data.areasCovered.join(", "));
   }, [profile.data]);
 
+  const pickPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.75,
+    });
+    if (!result.canceled) setAvatar(result.assets[0].uri);
+  };
+
   const mutation = useMutation({
     mutationFn: () =>
-      saveAgentProfile({
-        agencyName: agencyName.trim(),
-        whatsapp: whatsapp.trim(),
-        bio: bio.trim(),
-        areasCovered: areas
-          .split(",")
-          .map((area) => area.trim())
-          .filter(Boolean),
-      }),
-    onSuccess: async (saved) => {
-      queryClient.setQueryData(["agent-profile", "me"], saved);
+      (async () => {
+        const uploadedAvatar = avatar && !avatar.startsWith("http")
+          ? await uploadImageAsset(avatar)
+          : undefined;
+        const avatarUrl = uploadedAvatar?.url || (avatar || undefined);
+        await saveAgentProfile({
+          agencyName: agencyName.trim(),
+          whatsapp: whatsapp.trim(),
+          bio: bio.trim(),
+          areasCovered: areas
+            .split(",")
+            .map((area) => area.trim())
+            .filter(Boolean),
+        });
+        if (avatarUrl) {
+          await updateProfile({ avatarUrl, avatarMediaId: uploadedAvatar?.publicId });
+        }
+        return avatarUrl;
+      })(),
+    onSuccess: async () => {
       const updatedUser = await fetchCurrentUser();
+      queryClient.invalidateQueries({ queryKey: ["agent-profile", "me"] });
       const accessToken = useAuthStore.getState().accessToken;
       const refreshToken = await getStoredRefreshToken();
       if (accessToken && refreshToken)
@@ -111,6 +135,11 @@ export default function AgentProfileScreen() {
         <Text style={styles.heading}>
           {isAgent ? "Edit agent profile" : "Become a property agent"}
         </Text>
+        <Pressable style={styles.editAvatarWrap} onPress={pickPhoto}>
+          {avatar ? <Image source={{ uri: avatar }} style={styles.editAvatar} contentFit="cover" /> : <View style={styles.editAvatarPlaceholder}><Ionicons name="person" size={32} color={COLORS.text} /></View>}
+          <View style={styles.camera}><Ionicons name="camera" size={15} color="#FFFFFF" /></View>
+        </Pressable>
+        <Text style={styles.photoHint}>Tap the photo to upload or change your profile picture</Text>
         <Text style={styles.note}>
           {isAgent
             ? "Keep your professional information current."
@@ -240,6 +269,11 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 110, textAlignVertical: "top" },
   profileHeader: { alignItems: "center", gap: 9 },
   avatar: { width: 100, height: 100, borderRadius: 50 },
+  editAvatarWrap: { width: 88, height: 88, alignSelf: "center" },
+  editAvatar: { width: 88, height: 88, borderRadius: 44 },
+  editAvatarPlaceholder: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surfaceElevated, borderWidth: 1, borderColor: COLORS.border },
+  camera: { position: "absolute", right: 0, bottom: 0, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.primary },
+  photoHint: { color: COLORS.muted, fontSize: 12, textAlign: "center", marginTop: -4 },
   avatarPlaceholder: {
     width: 100,
     height: 100,

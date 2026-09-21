@@ -238,14 +238,29 @@ export class MediaService {
   async deleteAsset(id: string) {
     const asset = await this.prisma.mediaAsset.findFirst({ where: { id, deletedAt: null } });
     if (!asset) throw new NotFoundException("Media asset not found");
+    await this.removeAssetFiles(asset);
+    await this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { deleted: true };
+  }
+
+  async deleteProjectAsset(projectSlug: string, id: string) {
+    const project = await this.getProject(projectSlug);
+    const asset = await this.prisma.mediaAsset.findFirst({
+      where: { id, projectId: project.id, deletedAt: null },
+    });
+    if (!asset) throw new NotFoundException("Media asset not found");
+    await this.removeAssetFiles(asset);
+    await this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date() } });
+    return { deleted: true };
+  }
+
+  private async removeAssetFiles(asset: { storedFilename: string; kind: MediaAssetKind }) {
     const storagePath = resolve(process.env.MEDIA_STORAGE_PATH ?? "./storage");
     await unlink(resolve(storagePath, asset.storedFilename)).catch(() => undefined);
     if (asset.kind === MediaAssetKind.VIDEO) {
       const thumbnailFilename = asset.storedFilename.replace(/\.[^.]+$/, ".jpg");
       await unlink(resolve(storagePath, thumbnailFilename)).catch(() => undefined);
     }
-    await this.prisma.mediaAsset.update({ where: { id }, data: { deletedAt: new Date() } });
-    return { deleted: true };
   }
 
   private async getProject(projectSlug: string) {

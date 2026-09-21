@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { UploadsService } from '../uploads/uploads.service';
 import type { RegisterDto } from '../auth/dto/register.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -12,7 +13,10 @@ const PASSWORD_SALT_ROUNDS = 12;
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   findByEmail(email: string) {
     return this.prisma.user.findUnique({
@@ -91,7 +95,22 @@ export class UsersService {
     return user;
   }
 
-  update(id: string, dto: UpdateProfileDto) {
-    return this.prisma.user.update({ where: { id }, data: dto });
+  async update(id: string, dto: UpdateProfileDto) {
+    const previous = await this.prisma.user.findUnique({
+      where: { id },
+      select: { avatarMediaId: true },
+    });
+    const updated = await this.prisma.user.update({ where: { id }, data: dto });
+
+    // Only IDs issued by our upload endpoint are eligible. External Google
+    // avatar URLs and listing media are never deleted by this path.
+    if (
+      dto.avatarMediaId &&
+      previous?.avatarMediaId &&
+      dto.avatarMediaId !== previous.avatarMediaId
+    ) {
+      await this.uploads.deleteMedia(previous.avatarMediaId).catch(() => undefined);
+    }
+    return updated;
   }
 }

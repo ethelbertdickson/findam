@@ -26,4 +26,9 @@ export class UploadsService {
       return this.provider.uploadImage(file);
     throw new BadRequestException('Media storage provider cannot upload files');
   }
+
+  async deleteMedia(publicId: string) {
+    if (typeof this.provider.deleteMedia !== 'function') return;
+    await this.provider.deleteMedia(publicId);
+  }
 }

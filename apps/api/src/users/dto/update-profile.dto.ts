@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUrl, IsUUID, MaxLength } from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional()
@@ -14,6 +14,10 @@ export class UpdateProfileDto {
   lastName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
   @ApiPropertyOptional() @IsOptional() @IsUrl() avatarUrl?: string;
+  @ApiPropertyOptional({ description: 'Managed media asset replaced when the avatar changes' })
+  @IsOptional()
+  @IsUUID()
+  avatarMediaId?: string | null;
   @ApiPropertyOptional({ enum: ['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'ZAR', 'GHS', 'KES'] })
   @IsOptional()
   @IsIn(['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'AUD', 'ZAR', 'GHS', 'KES'])

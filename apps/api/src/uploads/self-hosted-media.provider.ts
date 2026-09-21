@@ -95,6 +95,28 @@ export class SelfHostedMediaProvider implements StorageProvider {
   uploadImage(file: { buffer: Buffer; mimetype: string; originalname: string }) {
     return this.uploadMedia(file);
   }
+
+  async deleteMedia(publicId: string) {
+    if (!this.apiKey) return;
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.serviceUrl}/api/v1/projects/${encodeURIComponent(this.projectSlug)}/assets/${encodeURIComponent(publicId)}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${this.apiKey}` },
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+    } catch (error) {
+      this.logger.warn(`Media cleanup request failed: ${error instanceof Error ? error.message : 'network error'}`);
+      throw error;
+    }
+    if (!response.ok && response.status !== 404) {
+      this.logger.warn(`Media cleanup rejected (${response.status})`);
+      throw new BadGatewayException('Media cleanup failed');
+    }
+  }
 }
 
 function trimTrailingSlash(value: string) {

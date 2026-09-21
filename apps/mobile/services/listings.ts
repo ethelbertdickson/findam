@@ -109,6 +109,10 @@ export async function uploadImage(uri: string) {
   return uploaded.url;
 }
 
+export async function uploadImageAsset(uri: string) {
+  return uploadMedia(uri, "image/jpeg");
+}
+
 export async function uploadMedia(uri: string, mimeType?: string) {
   const body = new FormData();
   const isVideo = mimeType?.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(uri);
@@ -124,7 +128,7 @@ export async function uploadMedia(uri: string, mimeType?: string) {
   } else {
     body.append("file", { uri, name: filename, type } as any);
   }
-  const { data } = await apiClient.post<{ url: string; thumbnailUrl?: string }>("/uploads", body, {
+  const { data } = await apiClient.post<{ url: string; thumbnailUrl?: string; publicId?: string }>("/uploads", body, {
     headers: { "Content-Type": "multipart/form-data" },
     // Video uploads are compressed by the media service before the URL is
     // returned. Give that server-side transcode enough time to complete.

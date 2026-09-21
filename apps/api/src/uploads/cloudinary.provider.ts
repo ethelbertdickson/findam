@@ -66,4 +66,14 @@ export class CloudinaryProvider implements StorageProvider {
   uploadImage(file: { buffer: Buffer; mimetype: string; originalname: string }) {
     return this.uploadMedia(file);
   }
+
+  async deleteMedia(publicId: string) {
+    await new Promise<void>((resolve, reject) => {
+      cloudinary.uploader.destroy(
+        publicId,
+        { resource_type: 'auto', invalidate: true, ...this.credentials },
+        (error) => (error ? reject(error) : resolve()),
+      );
+    });
+  }
 }

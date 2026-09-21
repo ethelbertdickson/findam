@@ -17,7 +17,7 @@ import { Button } from "../../components/Button";
 import { COLORS } from "../../constants";
 import { useAuth } from "../../hooks/useAuth";
 import { updateProfile } from "../../services/auth";
-import { uploadImage } from "../../services/listings";
+import { uploadImageAsset } from "../../services/listings";
 import { getStoredRefreshToken, useAuthStore } from "../../store/auth-store";
 import { getApiErrorMessage } from "../../utils/errors";
 
@@ -53,15 +53,17 @@ export default function ProfileScreen() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const avatarUrl =
+      const uploadedAvatar =
         avatar && !avatar.startsWith("http")
-          ? await uploadImage(avatar)
-          : avatar || undefined;
+          ? await uploadImageAsset(avatar)
+          : undefined;
+      const avatarUrl = uploadedAvatar?.url || (avatar || undefined);
       return updateProfile({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
         avatarUrl,
+        avatarMediaId: uploadedAvatar?.publicId,
       });
     },
     onSuccess: async (updated) => {

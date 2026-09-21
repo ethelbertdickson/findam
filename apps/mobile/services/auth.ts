@@ -53,6 +53,7 @@ export async function updateProfile(input: {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
+  avatarMediaId?: string | null;
   currencyCode?: CurrencyCode;
 }) {
   const { data } = await apiClient.patch<User>("/auth/me", input);
