@@ -461,7 +461,7 @@ function AssetCard({
       <article className="group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20">
         <div className="flex min-w-0 items-center gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-muted/40">
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white"><Play className="ml-0.5 size-3.5 fill-current" /></span></button> : <Icon className="size-5 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} onLoadedData={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white"><Play className="ml-0.5 size-3.5 fill-current" /></span></button> : <Icon className="size-5 text-muted-foreground" />}
         </div>
         <div className="min-w-0"><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></div>
         </div>
@@ -477,15 +477,15 @@ function AssetCard({
     );
   }
   return (
-    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background/30 ${selected ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'} ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
+    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background/30 ${selected ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'} ${viewMode === 'cards' ? 'h-[394px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="group/video relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg ring-1 ring-white/40 transition-transform group-hover/video:scale-105"><Play className="ml-0.5 size-5 fill-current" /></span></button> : <Icon className="size-7 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="group/video relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} onLoadedData={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg ring-1 ring-white/40 transition-transform group-hover/video:scale-105"><Play className="ml-0.5 size-5 fill-current" /></span></button> : <Icon className="size-7 text-muted-foreground" />}
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} />
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}{asset.kind === 'VIDEO' ? ` · ${durationLabel}` : ''}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
       </div>
       <div
-        className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : `flex h-[104px] flex-none flex-col justify-start gap-1 border-t border-border/70 p-3 ${viewMode === 'cards' ? 'cursor-pointer' : ''}`}
+        className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : `flex h-[68px] flex-none flex-col justify-start gap-1 border-t border-border/70 p-3 ${viewMode === 'cards' ? 'cursor-pointer' : ''}`}
         onClick={viewMode === 'cards' ? onToggleSelect : undefined}
         onKeyDown={viewMode === 'cards' ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggleSelect(); } } : undefined}
         role={viewMode === 'cards' ? 'button' : undefined}
@@ -493,7 +493,7 @@ function AssetCard({
         aria-label={viewMode === 'cards' ? `${selected ? 'Deselect' : 'Select'} ${asset.originalFilename}` : undefined}
       >
         <p className="truncate text-sm font-medium" title={asset.originalFilename}>{asset.originalFilename}</p>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5 shrink-0" aria-label="Public" /></div>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{asset.kind === 'VIDEO' ? 'VIDEO' : format}</span><span>{asset.kind === 'VIDEO' ? format : dimensions}</span>{asset.kind === 'VIDEO' ? <><span>{dimensions}</span><span>{durationLabel}</span></> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5 shrink-0" aria-label="Public" /></div>
       </div>
     </article>
   );
@@ -544,6 +544,22 @@ function AssetGallery({
     if (assets.length > 1) onChange(next.id);
   }
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        showPrevious();
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        showNext();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeIndex, assets, onClose]);
+
   return (
     <dialog
       open
@@ -576,6 +592,11 @@ function AssetGallery({
               autoPlay
               playsInline
               onLoadedMetadata={(event) => {
+                const video = event.currentTarget;
+                if (video.videoWidth && video.videoHeight) setDimensions(`${video.videoWidth} × ${video.videoHeight}`);
+                if (Number.isFinite(video.duration)) setDuration(video.duration);
+              }}
+              onLoadedData={(event) => {
                 const video = event.currentTarget;
                 if (video.videoWidth && video.videoHeight) setDimensions(`${video.videoWidth} × ${video.videoHeight}`);
                 if (Number.isFinite(video.duration)) setDuration(video.duration);
