@@ -294,7 +294,15 @@ export function MediaLibraryPage({
               <Loader2 className="size-5 animate-spin text-primary" />
             </div>
           ) : assets.length ? (
-            <div className={viewMode === 'list' ? 'divide-y divide-border/70' : viewMode === 'mosaic' ? 'grid auto-flow-dense auto-rows-[240px] grid-cols-12 gap-4 p-4' : 'grid auto-flow-dense auto-rows-[430px] grid-cols-12 gap-4 p-4'}>
+            <div
+              className={
+                viewMode === 'list'
+                  ? 'divide-y divide-border/70'
+                  : viewMode === 'mosaic'
+                    ? 'grid auto-flow-dense auto-rows-[240px] grid-cols-12 gap-4 p-4'
+                    : 'grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
+              }
+            >
               {viewMode === 'list' ? <div className="hidden grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] gap-4 bg-muted/20 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid"><span>Display name</span><span>Containing folder</span><span>Asset type</span><span>Format</span><span>Size</span><span>Dimensions</span><span>Delivery</span><span>Access</span><span /></div> : null}
               {assets.map((asset) => (
                 <AssetCard key={asset.id} asset={asset} viewMode={viewMode} onDelete={() => void onDeleteAsset(asset)} />
@@ -377,9 +385,14 @@ function AssetCard({
   const parsedHeight = dimensions.includes('×') ? Number(dimensions.split('×')[1].trim()) : 0;
   const ratio = parsedWidth && parsedHeight ? parsedWidth / parsedHeight : 1;
   const mosaicSpan = ratio >= 1.8 ? 6 : ratio >= 1.25 ? 4 : ratio >= 0.8 ? 3 : 2;
+  const imageClass = viewMode === 'cards'
+    ? 'size-full object-contain p-3'
+    : viewMode === 'mosaic'
+      ? 'size-full object-cover'
+      : 'size-full object-contain';
   const imagePreview = asset.kind === 'IMAGE' ? (
     // oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service.
-    <img src={asset.urlPath} alt={asset.originalFilename} className={`size-full ${viewMode === 'mosaic' || viewMode === 'cards' ? 'object-cover' : 'object-contain'}`} onLoad={(event) => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)} />
+    <img src={asset.urlPath} alt={asset.originalFilename} className={imageClass} onLoad={(event) => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)} />
   ) : <Icon className="size-7 text-muted-foreground" />;
   const videoMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
     const video = event.currentTarget;
@@ -409,21 +422,21 @@ function AssetCard({
     );
   }
   return (
-    <article style={viewMode === 'mosaic' || viewMode === 'cards' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex flex-col overflow-hidden border border-border/80 bg-background/30 ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
+    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-background/30 ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /></button> : <Icon className="size-7 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /></button> : <Icon className="size-7 text-muted-foreground" />}
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} />
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}{asset.kind === 'VIDEO' ? ` · ${durationLabel}` : ''}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
       </div>
-      <div className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : 'flex min-h-[104px] flex-none flex-col justify-center border-t border-border/70 p-3'}>
+      <div className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : 'flex h-[104px] flex-none flex-col justify-between border-t border-border/70 p-3'}>
         <p
           className="truncate text-sm font-medium"
           title={asset.originalFilename}
         >
           {asset.originalFilename}
         </p>
-        <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground"><span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5" aria-label="Public" /></div>
+        <div className="flex min-w-0 items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5 shrink-0" aria-label="Public" /></div>
       </div>
       {previewOpen ? (
         <dialog open className="fixed inset-0 z-[100] m-0 grid h-full w-full place-items-center border-0 bg-black/80 p-6" aria-label={asset.originalFilename}>
