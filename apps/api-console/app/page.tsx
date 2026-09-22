@@ -414,12 +414,13 @@ function Dashboard({
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <div id="console-header-actions" className="flex items-center gap-2" />
             <Badge
               variant="outline"
               className="hidden border-success/25 bg-success/8 text-success sm:inline-flex"
             >
               <span className="size-1.5 rounded-full bg-success" />
-              Local development
+              {import.meta.env.DEV ? 'Local development' : 'Remote deployment'}
             </Badge>
             <nav
               className="flex gap-1 lg:hidden"

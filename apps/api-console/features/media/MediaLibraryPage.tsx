@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   Check,
@@ -90,11 +91,17 @@ export function MediaLibraryPage({
   const [viewMode, setViewMode] = useState<'list' | 'cards' | 'mosaic'>(() =>
     (window.localStorage.getItem('findam-media-view') as 'list' | 'cards' | 'mosaic') || 'cards',
   );
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     window.localStorage.setItem('findam-media-view', viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    setHeaderTarget(document.getElementById('console-header-actions'));
+    return () => setHeaderTarget(null);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,8 +155,6 @@ export function MediaLibraryPage({
     return (!kindFilter || asset.kind === kindFilter) && formatMatches;
   });
   const availableFormats = Array.from(new Set(assets.map((asset) => asset.mimeType.split('/')[1]?.toUpperCase()).filter(Boolean))).sort();
-  const deploymentLabel = import.meta.env.DEV ? 'Local' : 'Remote';
-
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -195,16 +200,8 @@ export function MediaLibraryPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="sticky top-0 z-30 mb-4 flex flex-col justify-between gap-3 border-b border-border/70 bg-background/95 py-3 backdrop-blur sm:flex-row sm:items-center">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
-              Media
-            </h1>
-            <span className="text-xs text-muted-foreground">{deploymentLabel} deployment</span>
-          </div>
-        </div>
+    <>
+      {headerTarget ? createPortal(
         <div className="flex flex-wrap items-center justify-end gap-2">
           <NativeSelect
             aria-label="Media project"
@@ -239,8 +236,10 @@ export function MediaLibraryPage({
             accept="image/*,video/*,application/pdf"
             onChange={onFileSelected}
           />
-        </div>
-      </section>
+        </div>,
+        headerTarget,
+      ) : null}
+      <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {error ? (
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">
           <AlertTriangle className="size-4" />
@@ -418,7 +417,8 @@ export function MediaLibraryPage({
           </form>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+      </main>
+    </>
   );
 }
 
