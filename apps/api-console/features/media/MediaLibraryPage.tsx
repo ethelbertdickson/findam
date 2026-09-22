@@ -9,6 +9,8 @@ import {
 import {
   AlertTriangle,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Download,
   ExternalLink,
@@ -23,6 +25,7 @@ import {
   List,
   MoreVertical,
   Pencil,
+  Play,
   Replace,
   Search,
   Share2,
@@ -80,6 +83,8 @@ export function MediaLibraryPage({
   const [error, setError] = useState<string | null>(null);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [galleryAssetId, setGalleryAssetId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'cards' | 'mosaic'>(() =>
     (window.localStorage.getItem('findam-media-view') as 'list' | 'cards' | 'mosaic') || 'cards',
   );
@@ -102,6 +107,7 @@ export function MediaLibraryPage({
       setFolders(folderResult);
       setAssets(assetResult.items);
       setTotal(assetResult.total);
+      setSelectedIds([]);
     } catch (caught) {
       if (
         caught instanceof ApiError &&
@@ -289,6 +295,33 @@ export function MediaLibraryPage({
               ))}
             </div>
           </div>
+          {selectedIds.length ? (
+            <div className="flex items-center justify-between gap-3 border-b border-primary/20 bg-primary/5 px-4 py-2 text-sm">
+              <span className="text-muted-foreground">
+                {selectedIds.length} asset{selectedIds.length === 1 ? '' : 's'} selected
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  if (!window.confirm(`Delete ${selectedIds.length} selected asset${selectedIds.length === 1 ? '' : 's'}?`)) return;
+                  void (async () => {
+                    try {
+                      await Promise.all(selectedIds.map((id) => deleteMediaAsset(id, csrfToken)));
+                      setSelectedIds([]);
+                      await load();
+                    } catch (caught) {
+                      setError(errorMessage(caught));
+                    }
+                  })();
+                }}
+              >
+                <Trash2 />
+                Delete selected
+              </Button>
+            </div>
+          ) : null}
           {loading && !assets.length ? (
             <div className="grid min-h-80 place-items-center">
               <Loader2 className="size-5 animate-spin text-primary" />
@@ -305,7 +338,15 @@ export function MediaLibraryPage({
             >
               {viewMode === 'list' ? <div className="hidden grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] gap-4 bg-muted/20 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid"><span>Display name</span><span>Containing folder</span><span>Asset type</span><span>Format</span><span>Size</span><span>Dimensions</span><span>Delivery</span><span>Access</span><span /></div> : null}
               {assets.map((asset) => (
-                <AssetCard key={asset.id} asset={asset} viewMode={viewMode} onDelete={() => void onDeleteAsset(asset)} />
+                <AssetCard
+                  key={asset.id}
+                  asset={asset}
+                  viewMode={viewMode}
+                  selected={selectedIds.includes(asset.id)}
+                  onToggleSelect={() => setSelectedIds((current) => current.includes(asset.id) ? current.filter((id) => id !== asset.id) : [...current, asset.id])}
+                  onPreview={() => setGalleryAssetId(asset.id)}
+                  onDelete={() => void onDeleteAsset(asset)}
+                />
               ))}
             </div>
           ) : (
@@ -325,6 +366,15 @@ export function MediaLibraryPage({
           </div>
         </CardContent>
       </Card>
+      {galleryAssetId ? (
+        <AssetGallery
+          assets={assets}
+          activeId={galleryAssetId}
+          onClose={() => setGalleryAssetId(null)}
+          onChange={setGalleryAssetId}
+          onDelete={(asset) => void onDeleteAsset(asset)}
+        />
+      ) : null}
       <AlertDialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
         <AlertDialogContent>
           <form onSubmit={onCreateFolder}>
@@ -357,17 +407,22 @@ function AssetCard({
   asset,
   viewMode,
   compact = false,
+  selected,
+  onToggleSelect,
+  onPreview,
   onDelete,
 }: {
   asset: MediaAsset;
   viewMode: 'list' | 'cards' | 'mosaic';
   compact?: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onPreview: () => void;
   onDelete: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const [dimensions, setDimensions] = useState('—');
   const [duration, setDuration] = useState<number | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const Icon =
     asset.kind === 'VIDEO'
@@ -406,7 +461,7 @@ function AssetCard({
       <article className="group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20">
         <div className="flex min-w-0 items-center gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-muted/40">
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /></button> : <Icon className="size-5 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white"><Play className="ml-0.5 size-3.5 fill-current" /></span></button> : <Icon className="size-5 text-muted-foreground" />}
         </div>
         <div className="min-w-0"><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></div>
         </div>
@@ -422,60 +477,158 @@ function AssetCard({
     );
   }
   return (
-    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-background/30 ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
+    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background/30 ${selected ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'} ${viewMode === 'cards' ? 'h-[430px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
-          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="size-full" onClick={() => setPreviewOpen(true)} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /></button> : <Icon className="size-7 text-muted-foreground" />}
+          {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="group/video relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg ring-1 ring-white/40 transition-transform group-hover/video:scale-105"><Play className="ml-0.5 size-5 fill-current" /></span></button> : <Icon className="size-7 text-muted-foreground" />}
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} />
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}{asset.kind === 'VIDEO' ? ` · ${durationLabel}` : ''}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
       </div>
-      <div className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : 'flex h-[104px] flex-none flex-col justify-between border-t border-border/70 p-3'}>
-        <p
-          className="truncate text-sm font-medium"
-          title={asset.originalFilename}
-        >
-          {asset.originalFilename}
-        </p>
-        <div className="flex min-w-0 items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5 shrink-0" aria-label="Public" /></div>
+      <div
+        className={viewMode === 'mosaic' ? 'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 text-white opacity-0 transition-opacity group-hover:opacity-100' : compact ? 'hidden' : `flex h-[104px] flex-none flex-col justify-start gap-1 border-t border-border/70 p-3 ${viewMode === 'cards' ? 'cursor-pointer' : ''}`}
+        onClick={viewMode === 'cards' ? onToggleSelect : undefined}
+        onKeyDown={viewMode === 'cards' ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onToggleSelect(); } } : undefined}
+        role={viewMode === 'cards' ? 'button' : undefined}
+        tabIndex={viewMode === 'cards' ? 0 : undefined}
+        aria-label={viewMode === 'cards' ? `${selected ? 'Deselect' : 'Select'} ${asset.originalFilename}` : undefined}
+      >
+        <p className="truncate text-sm font-medium" title={asset.originalFilename}>{asset.originalFilename}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><Globe2 className="ml-auto size-3.5 shrink-0" aria-label="Public" /></div>
       </div>
-      {previewOpen ? (
-        <dialog open className="fixed inset-0 z-[100] m-0 grid h-full w-full place-items-center border-0 bg-black/80 p-6" aria-label={asset.originalFilename}>
-          <button type="button" onClick={() => setPreviewOpen(false)} aria-label="Close preview" data-tooltip="Close" className="media-tooltip absolute right-5 top-5 grid size-10 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"><X /></button>
-          <div className="max-h-full max-w-5xl">
-            {asset.kind === 'VIDEO' ? <video src={asset.urlPath} controls autoPlay playsInline onLoadedMetadata={videoMetadata} className="max-h-[85vh] max-w-[90vw] object-contain" /> : (
-              // oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service.
-              <img src={asset.urlPath} alt={asset.originalFilename} className="max-h-[85vh] max-w-[90vw] object-contain" />
-            )}
-          </div>
-        </dialog>
-      ) : null}
     </article>
   );
 }
 
-function AssetActions({ asset, copied, onCopy, onDelete, inline = false }: { asset: MediaAsset; copied: boolean; onCopy: () => Promise<void>; onDelete: () => void; inline?: boolean }) {
+function AssetGallery({
+  assets,
+  activeId,
+  onClose,
+  onChange,
+  onDelete,
+}: {
+  assets: MediaAsset[];
+  activeId: string;
+  onClose: () => void;
+  onChange: (id: string) => void;
+  onDelete: (asset: MediaAsset) => void;
+}) {
+  const activeIndex = Math.max(0, assets.findIndex((asset) => asset.id === activeId));
+  const asset = assets[activeIndex];
+  const touchStartX = useRef<number | null>(null);
+  const [dimensions, setDimensions] = useState('—');
+  const [duration, setDuration] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setDimensions('—');
+    setDuration(null);
+    setCopied(false);
+  }, [activeId]);
+
+  if (!asset) return null;
+  const previous = assets[(activeIndex - 1 + assets.length) % assets.length];
+  const next = assets[(activeIndex + 1) % assets.length];
+  const format = asset.mimeType.split('/')[1]?.toUpperCase() ?? '—';
+  const durationLabel = duration !== null ? formatDuration(duration) : '—';
+
+  async function copyUrl() {
+    await navigator.clipboard.writeText(new URL(asset.urlPath, window.location.origin).href);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+
+  function showPrevious() {
+    if (assets.length > 1) onChange(previous.id);
+  }
+  function showNext() {
+    if (assets.length > 1) onChange(next.id);
+  }
+
+  return (
+    <dialog
+      open
+      className="fixed inset-0 z-[100] m-0 flex h-full w-full flex-col border-0 bg-black/90 p-4 text-white backdrop-blur-sm sm:p-6"
+      aria-label={`${asset.originalFilename} preview`}
+      onTouchStart={(event) => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
+      onTouchEnd={(event) => {
+        if (touchStartX.current === null) return;
+        const distance = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+        touchStartX.current = null;
+        if (Math.abs(distance) > 50) distance > 0 ? showPrevious() : showNext();
+      }}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium sm:text-base">{asset.originalFilename}</p>
+          <p className="text-xs text-white/60">{activeIndex + 1} of {assets.length}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close preview" className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"><X /></button>
+      </div>
+      <div className="relative flex min-h-0 flex-1 items-center justify-center gap-3 py-4">
+        <button type="button" onClick={showPrevious} disabled={assets.length < 2} aria-label="Previous asset" className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 disabled:opacity-30 hover:bg-white/20"><ChevronLeft /></button>
+        <div className="relative flex h-full min-h-0 min-w-0 flex-1 items-center justify-center">
+          {asset.kind === 'VIDEO' ? (
+            <video
+              key={asset.id}
+              src={asset.urlPath}
+              poster={asset.thumbnailPath}
+              controls
+              autoPlay
+              playsInline
+              onLoadedMetadata={(event) => {
+                const video = event.currentTarget;
+                if (video.videoWidth && video.videoHeight) setDimensions(`${video.videoWidth} × ${video.videoHeight}`);
+                if (Number.isFinite(video.duration)) setDuration(video.duration);
+              }}
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : asset.kind === 'IMAGE' ? (
+            // oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service.
+            <img key={asset.id} src={asset.urlPath} alt={asset.originalFilename} onLoad={(event) => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)} className="max-h-full max-w-full object-contain" />
+          ) : <FileText className="size-16 text-white/60" />}
+          <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={() => onDelete(asset)} forceVisible />
+        </div>
+        <button type="button" onClick={showNext} disabled={assets.length < 2} aria-label="Next asset" className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 disabled:opacity-30 hover:bg-white/20"><ChevronRight /></button>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-white/65">
+        <span>{format}</span><span>{dimensions}</span>{asset.kind === 'VIDEO' ? <span>{durationLabel}</span> : null}<span>{formatBytes(asset.sizeBytes)}</span><span>{asset.folder?.path ?? 'Unfiled'}</span>
+      </div>
+    </dialog>
+  );
+}
+
+function AssetActions({ asset, copied, onCopy, onDelete, inline = false, forceVisible = false }: { asset: MediaAsset; copied: boolean; onCopy: () => Promise<void>; onDelete: () => void; inline?: boolean; forceVisible?: boolean }) {
   const [open, setOpen] = useState(false);
   const disabledActions = [
     ['Download', Download],
     ['Rename', Pencil],
     ['Replace', Replace],
-    ['Share', Share2],
     ['Add to collection', FolderPlus],
   ] as const;
   return (
-    <div className={`${inline ? 'relative justify-end' : 'absolute right-2 top-2'} z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100`}>
+    <div className={`${inline ? 'relative justify-end' : 'absolute right-2 top-2'} z-10 flex gap-1 ${forceVisible ? '' : 'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'}`}>
       <button type="button" onClick={() => void onCopy()} aria-label="Copy media URL" data-tooltip={copied ? 'Copied' : 'Copy URL'} className="media-tooltip grid size-8 place-items-center rounded-full bg-black/65 text-white backdrop-blur-sm hover:bg-black/85">{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button>
       <div className="relative">
         <button type="button" onClick={() => setOpen((value) => !value)} aria-label="More media actions" data-tooltip="More actions" className="media-tooltip grid size-8 place-items-center rounded-full bg-black/65 text-white backdrop-blur-sm hover:bg-black/85"><MoreVertical className="size-4" /></button>
         {open ? <div className={`absolute right-0 top-9 flex gap-1 rounded-full bg-background/75 p-1 shadow-xl backdrop-blur-sm ${inline ? 'flex-row' : 'flex-col'}`}>
           <a href={asset.urlPath} target="_blank" rel="noreferrer" aria-label="Open asset" data-tooltip="Open asset" className="media-tooltip grid size-8 place-items-center rounded-full text-foreground hover:bg-muted"><ExternalLink className="size-3.5" /></a>
           <button type="button" onClick={() => void onCopy()} aria-label="Copy URL" data-tooltip="Copy URL" className="media-tooltip grid size-8 place-items-center rounded-full text-foreground hover:bg-muted"><Copy className="size-3.5" /></button>
+          <button type="button" onClick={() => { setOpen(false); void shareAsset(); }} aria-label="Share asset" data-tooltip="Share asset" className="media-tooltip grid size-8 place-items-center rounded-full text-foreground hover:bg-muted"><Share2 className="size-3.5" /></button>
           <button type="button" onClick={() => { setOpen(false); onDelete(); }} aria-label="Delete media" data-tooltip="Delete media" className="media-tooltip grid size-8 place-items-center rounded-full text-destructive hover:bg-destructive/10"><Trash2 className="size-3.5" /></button>
           {disabledActions.map(([label, ActionIcon]) => <button key={label} type="button" disabled aria-label={`${label} (coming soon)`} data-tooltip={`${label} (coming soon)`} className="media-tooltip grid size-8 place-items-center rounded-full text-muted-foreground opacity-40"><ActionIcon className="size-3.5" /></button>)}
         </div> : null}
       </div>
     </div>
   );
+
+  async function shareAsset() {
+    const url = new URL(asset.urlPath, window.location.origin).href;
+    if (navigator.share) {
+      await navigator.share({ title: asset.originalFilename, url }).catch(() => undefined);
+      return;
+    }
+    await onCopy();
+  }
 }
 function formatBytes(value: number) {
   if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
