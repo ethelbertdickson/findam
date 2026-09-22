@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ApiError } from '@/features/auth/admin-auth';
+import { ConsoleHeaderSlot } from '@/app/ConsoleHeaderSlot';
 import {
   getAdminAuditLog,
   type AdminAuditAction,
@@ -83,28 +84,17 @@ export function AuditLogPage({
   const last = Math.min((result?.page ?? page) * 20, total);
 
   return (
+    <>
+    <ConsoleHeaderSlot>
+      <NativeSelect aria-label="Filter audit log by action" value={action} onChange={(event) => { setAction(event.target.value); setPage(1); }}>
+        <NativeSelectOption value="">All actions</NativeSelectOption>
+        {auditActions.map((auditAction) => <NativeSelectOption key={auditAction} value={auditAction}>{titleCase(auditAction)}</NativeSelectOption>)}
+      </NativeSelect>
+      {result ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
+    </ConsoleHeaderSlot>
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
-          <div className="flex items-center gap-2 border-b border-border/70 p-4">
-            <NativeSelect
-              aria-label="Filter audit log by action"
-              value={action}
-              onChange={(event) => {
-                setAction(event.target.value);
-                setPage(1);
-              }}
-            >
-              <NativeSelectOption value="">All actions</NativeSelectOption>
-              {auditActions.map((auditAction) => (
-                <NativeSelectOption key={auditAction} value={auditAction}>
-                  {titleCase(auditAction)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            {result ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
-          </div>
-
           {error ? (
             <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
               <AlertTriangle className="size-6 text-destructive" />
@@ -204,6 +194,7 @@ export function AuditLogPage({
         </CardContent>
       </Card>
     </main>
+    </>
   );
 }
 

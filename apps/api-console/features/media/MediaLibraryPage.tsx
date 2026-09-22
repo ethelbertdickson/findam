@@ -88,6 +88,12 @@ export function MediaLibraryPage({
   const [galleryAssetId, setGalleryAssetId] = useState<string | null>(null);
   const [kindFilter, setKindFilter] = useState<MediaAsset['kind'] | ''>('');
   const [formatFilter, setFormatFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [datePreset, setDatePreset] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [uploaderFilter, setUploaderFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'cards' | 'mosaic'>(() =>
     (window.localStorage.getItem('findam-media-view') as 'list' | 'cards' | 'mosaic') || 'cards',
   );
@@ -110,7 +116,7 @@ export function MediaLibraryPage({
       const [projectResult, folderResult, assetResult] = await Promise.all([
         getMediaProjects(),
         getMediaFolders(projectSlug),
-        getMediaAssets({ projectSlug, q: search.trim(), folderPath }),
+        getMediaAssets({ projectSlug, q: search.trim(), folderPath, tag: tagFilter, ...dateQuery(datePreset, dateFrom, dateTo), uploadedBy: uploaderFilter }),
       ]);
       setProjects(projectResult);
       setFolders(folderResult);
@@ -127,7 +133,7 @@ export function MediaLibraryPage({
           const [projectResult, folderResult, assetResult] = await Promise.all([
             getMediaProjects(),
             getMediaFolders(projectSlug),
-            getMediaAssets({ projectSlug, q: search.trim(), folderPath }),
+            getMediaAssets({ projectSlug, q: search.trim(), folderPath, tag: tagFilter, ...dateQuery(datePreset, dateFrom, dateTo), uploadedBy: uploaderFilter }),
           ]);
           setProjects(projectResult);
           setFolders(folderResult);
@@ -143,7 +149,7 @@ export function MediaLibraryPage({
     } finally {
       setLoading(false);
     }
-  }, [folderPath, projectSlug, recoverSession, search]);
+  }, [dateFrom, datePreset, dateTo, folderPath, projectSlug, recoverSession, search, tagFilter, uploaderFilter]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -155,6 +161,8 @@ export function MediaLibraryPage({
     return (!kindFilter || asset.kind === kindFilter) && formatMatches;
   });
   const availableFormats = Array.from(new Set(assets.map((asset) => asset.mimeType.split('/')[1]?.toUpperCase()).filter(Boolean))).sort();
+  const availableTags = Array.from(new Set(assets.flatMap((asset) => asset.tags ?? []))).sort();
+  const availableUploaders = Array.from(new Set(assets.map((asset) => asset.uploadedByEmail || asset.uploadedByName || asset.uploadedByRole).filter((value): value is string => Boolean(value)))).sort();
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -162,7 +170,7 @@ export function MediaLibraryPage({
     setUploading(true);
     setError(null);
     try {
-      await uploadMediaAsset(file, folderPath, projectSlug, csrfToken);
+      await uploadMediaAsset(file, folderPath, projectSlug, csrfToken, tagInput);
       await load();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -202,7 +210,20 @@ export function MediaLibraryPage({
   return (
     <>
       {headerTarget ? createPortal(
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          <div className="relative min-w-48 flex-1 xl:max-w-xs">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search media…" aria-label="Search media" className="h-9 pl-9" />
+          </div>
+          <NativeSelect aria-label="Filter by folder" value={folderPath} onChange={(event) => setFolderPath(event.target.value)}><NativeSelectOption value="">Folders</NativeSelectOption>{folders.map((folder) => <NativeSelectOption key={folder.id} value={folder.path}>{folder.path} ({folder._count.assets})</NativeSelectOption>)}</NativeSelect>
+          <NativeSelect aria-label="Filter by format" value={formatFilter} onChange={(event) => setFormatFilter(event.target.value)}><NativeSelectOption value="">Formats</NativeSelectOption>{availableFormats.map((format) => <NativeSelectOption key={format} value={format}>{format}</NativeSelectOption>)}</NativeSelect>
+          <NativeSelect aria-label="Filter by asset type" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as MediaAsset['kind'] | '')}><NativeSelectOption value="">Asset types</NativeSelectOption><NativeSelectOption value="IMAGE">Images</NativeSelectOption><NativeSelectOption value="VIDEO">Videos</NativeSelectOption><NativeSelectOption value="DOCUMENT">Documents</NativeSelectOption></NativeSelect>
+          <NativeSelect aria-label="Filter by tag" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}><NativeSelectOption value="">Tags</NativeSelectOption>{availableTags.map((tag) => <NativeSelectOption key={tag} value={tag}>{tag}</NativeSelectOption>)}</NativeSelect>
+          <NativeSelect aria-label="Filter by date" value={datePreset} onChange={(event) => { setDatePreset(event.target.value); if (event.target.value !== 'custom') { setDateFrom(''); setDateTo(''); } }}><NativeSelectOption value="">Any date</NativeSelectOption><NativeSelectOption value="today">Today</NativeSelectOption><NativeSelectOption value="7">Last 7 days</NativeSelectOption><NativeSelectOption value="30">Last 30 days</NativeSelectOption><NativeSelectOption value="90">Last 90 days</NativeSelectOption><NativeSelectOption value="180">Last 180 days</NativeSelectOption><NativeSelectOption value="custom">Custom range</NativeSelectOption></NativeSelect>
+          {datePreset === 'custom' ? <><Input type="date" aria-label="Date from" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="h-9 w-32" /><Input type="date" aria-label="Date to" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="h-9 w-32" /></> : null}
+          <NativeSelect aria-label="Filter by uploader" value={uploaderFilter} onChange={(event) => setUploaderFilter(event.target.value)}><NativeSelectOption value="">Uploaded by</NativeSelectOption>{availableUploaders.map((uploader) => <NativeSelectOption key={uploader} value={uploader}>{uploader}</NativeSelectOption>)}</NativeSelect>
+          <span className="text-xs text-muted-foreground">{visibleAssets.length} shown</span>
+          <Input value={tagInput} onChange={(event) => setTagInput(event.target.value)} placeholder="Upload tags" aria-label="Upload tags" className="h-9 w-28" />
           <NativeSelect
             aria-label="Media project"
             value={projectSlug}
@@ -251,33 +272,8 @@ export function MediaLibraryPage({
       ) : null}
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
-          <div className="flex flex-col gap-3 border-b border-border/70 p-4">
-            <div className="relative min-w-0">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Type a name, tag, or metadata to find assets…"
-                className="h-11 pl-9 text-base"
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <NativeSelect aria-label="Filter by folder" value={folderPath} onChange={(event) => setFolderPath(event.target.value)}>
-                <NativeSelectOption value="">Folders</NativeSelectOption>
-                {folders.map((folder) => <NativeSelectOption key={folder.id} value={folder.path}>{folder.path} ({folder._count.assets})</NativeSelectOption>)}
-              </NativeSelect>
-              <NativeSelect aria-label="Filter by format" value={formatFilter} onChange={(event) => setFormatFilter(event.target.value)}>
-                <NativeSelectOption value="">Formats</NativeSelectOption>
-                {availableFormats.map((format) => <NativeSelectOption key={format} value={format}>{format}</NativeSelectOption>)}
-              </NativeSelect>
-              <NativeSelect aria-label="Filter by asset type" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as MediaAsset['kind'] | '')}>
-                <NativeSelectOption value="">Asset types</NativeSelectOption>
-                <NativeSelectOption value="IMAGE">Images</NativeSelectOption>
-                <NativeSelectOption value="VIDEO">Videos</NativeSelectOption>
-                <NativeSelectOption value="DOCUMENT">Documents</NativeSelectOption>
-              </NativeSelect>
-              <span className="ml-auto text-xs text-muted-foreground">{visibleAssets.length} shown</span>
-              <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center justify-end border-b border-border/70 p-3">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center rounded-lg border border-border/80 p-1" aria-label="Media display mode">
                   {([
                     ['list', List, 'List view'],
@@ -338,7 +334,6 @@ export function MediaLibraryPage({
                   </div>
                 ) : null}
               </div>
-            </div>
           </div>
           {loading && !assets.length ? (
             <div className="grid min-h-80 place-items-center">
@@ -676,6 +671,14 @@ function formatDuration(value: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+function dateQuery(preset: string, from: string, to: string) {
+  if (preset === 'custom') return { createdAfter: from, createdBefore: to };
+  if (!preset) return {};
+  const start = new Date();
+  if (preset === 'today') start.setHours(0, 0, 0, 0);
+  else start.setDate(start.getDate() - Number(preset));
+  return { createdAfter: start.toISOString() };
 }
 function errorMessage(error: unknown) {
   return error instanceof Error

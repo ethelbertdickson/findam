@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { StorageProvider, StoredImage } from './storage-provider';
+import { MediaUploader, StorageProvider, StoredImage } from './storage-provider';
 
 interface MediaUploadResponse {
   id: string;
@@ -39,7 +39,7 @@ export class SelfHostedMediaProvider implements StorageProvider {
     buffer: Buffer;
     mimetype: string;
     originalname: string;
-  }): Promise<StoredImage> {
+  }, uploader?: MediaUploader): Promise<StoredImage> {
     if (!this.apiKey) {
       throw new BadRequestException(
         'Self-hosted media storage is not configured',
@@ -61,7 +61,12 @@ export class SelfHostedMediaProvider implements StorageProvider {
         `${this.serviceUrl}/api/v1/projects/${encodeURIComponent(this.projectSlug)}/assets`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${this.apiKey}` },
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            ...(uploader?.id ? { 'X-Uploader-Id': uploader.id } : {}),
+            ...(uploader?.role ? { 'X-Uploader-Role': uploader.role } : {}),
+            ...(uploader?.email ? { 'X-Uploader-Email': uploader.email } : {}),
+          },
           body,
           signal: AbortSignal.timeout(isVideo ? 120_000 : 30_000),
         },

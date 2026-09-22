@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CloudinaryProvider } from './cloudinary.provider';
 import { SelfHostedMediaProvider } from './self-hosted-media.provider';
-import type { StorageProvider } from './storage-provider';
+import type { MediaUploader, StorageProvider } from './storage-provider';
 
 @Injectable()
 export class UploadsService {
@@ -19,9 +19,9 @@ export class UploadsService {
     else throw new BadRequestException(`Unknown storage provider: ${selected}`);
   }
 
-  upload(file: { buffer: Buffer; mimetype: string; originalname: string }) {
+  upload(file: { buffer: Buffer; mimetype: string; originalname: string }, uploader?: MediaUploader) {
     if (typeof this.provider.uploadMedia === 'function')
-      return this.provider.uploadMedia(file);
+      return this.provider.uploadMedia(file, uploader);
     if (typeof this.provider.uploadImage === 'function')
       return this.provider.uploadImage(file);
     throw new BadRequestException('Media storage provider cannot upload files');

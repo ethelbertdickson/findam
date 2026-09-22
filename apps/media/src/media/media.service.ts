@@ -147,11 +147,17 @@ export class MediaService {
   async listAssets(query: AssetsQueryDto) {
     const project = await this.getProject(query.projectSlug);
     const search = query.q?.trim();
+    const createdAfter = parseDate(query.createdAfter, false);
+    const createdBefore = parseDate(query.createdBefore, true);
+    const uploader = query.uploadedBy?.trim();
     const where: Prisma.MediaAssetWhereInput = {
       projectId: project.id,
       deletedAt: null,
       ...(query.folderPath ? { folder: { is: { path: normalizePath(query.folderPath) } } } : {}),
       ...(search ? { originalFilename: { contains: search, mode: "insensitive" } } : {}),
+      ...(query.tag?.trim() ? { tags: { has: query.tag.trim().toLowerCase() } } : {}),
+      ...((createdAfter || createdBefore) ? { createdAt: { ...(createdAfter ? { gte: createdAfter } : {}), ...(createdBefore ? { lte: createdBefore } : {}) } } : {}),
+      ...(uploader ? { OR: [{ uploadedByEmail: { contains: uploader, mode: "insensitive" } }, { uploadedByName: { contains: uploader, mode: "insensitive" } }, { uploadedByRole: { equals: uploader.toUpperCase() } }] } : {}),
     };
     const [items, total] = await Promise.all([
       this.prisma.mediaAsset.findMany({
@@ -180,7 +186,7 @@ export class MediaService {
     };
   }
 
-  async upload(file: Express.Multer.File, projectSlug: string, folderPath?: string) {
+  async upload(file: Express.Multer.File, projectSlug: string, folderPath?: string, uploader?: MediaUploader, tags: string[] = []) {
     if (!file || !file.buffer) {
       throw new BadRequestException("A file is required");
     }
@@ -220,6 +226,11 @@ export class MediaService {
           mimeType: processed.mimetype,
           kind: kindForMimeType(processed.mimetype),
           sizeBytes: processed.buffer.length,
+          tags: normalizeTags(tags),
+          uploadedById: uploader?.id,
+          uploadedByRole: uploader?.role,
+          uploadedByName: uploader?.name,
+          uploadedByEmail: uploader?.email,
           urlPath: `/media/${storedFilename}`,
         },
         include: { folder: { select: { id: true, name: true, path: true } } },
@@ -295,6 +306,13 @@ export class MediaService {
   }
 }
 
+export type MediaUploader = {
+  id?: string;
+  role?: string;
+  name?: string;
+  email?: string;
+};
+
 export function hashApiKey(key: string) {
   return createHash("sha256").update(key).digest("hex");
 }
@@ -343,6 +361,18 @@ function normalizePath(value: string) {
     .replace(/^\/+|\/+$/g, "")
     .replace(/\/{2,}/g, "/")
     .toLowerCase();
+}
+
+function normalizeTags(tags: string[]) {
+  return Array.from(new Set(tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean))).slice(0, 20);
+}
+
+function parseDate(value: string | undefined, endOfDay: boolean) {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(value)) date.setUTCHours(23, 59, 59, 999);
+  return date;
 }
 
 function slug(value: string) {

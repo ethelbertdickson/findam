@@ -7,10 +7,12 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AdminMediaGuard } from "./admin-media.guard";
 import { AssetsQueryDto } from "./dto/assets-query.dto";
@@ -75,12 +77,15 @@ export class MediaController {
   @UseGuards(MediaCsrfGuard)
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 80 * 1024 * 1024 } }))
   upload(
+    @Req() request: Request,
     @UploadedFile() file: Express.Multer.File,
     @Body("projectSlug") projectSlug: string,
     @Body("folderPath") folderPath?: string,
+    @Body("tags") tags?: string,
   ) {
     if (!file) throw new BadRequestException("A file is required");
-    return this.media.upload(file, projectSlug, folderPath);
+    const user = (request as Request & { user?: { sub?: string; email?: string; role?: string } }).user;
+    return this.media.upload(file, projectSlug, folderPath, user ? { id: user.sub, email: user.email, role: user.role } : undefined, parseTags(tags));
   }
 }
 
@@ -93,11 +98,21 @@ export class ProjectUploadsController {
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 80 * 1024 * 1024 } }))
   upload(
     @Param("projectSlug") projectSlug: string,
+    @Req() request: Request,
     @UploadedFile() file: Express.Multer.File,
     @Body("folderPath") folderPath?: string,
+    @Body("tags") tags?: string,
   ) {
     if (!file) throw new BadRequestException("A file is required");
-    return this.media.upload(file, projectSlug, folderPath);
+    const header = (name: string) => {
+      const value = request.headers[name];
+      return Array.isArray(value) ? value[0] : value;
+    };
+    return this.media.upload(file, projectSlug, folderPath, {
+      id: header("x-uploader-id"),
+      role: header("x-uploader-role"),
+      email: header("x-uploader-email"),
+    }, parseTags(tags));
   }
 
   @Delete(":projectSlug/assets/:id")
@@ -108,4 +123,8 @@ export class ProjectUploadsController {
   ) {
     return this.media.deleteProjectAsset(projectSlug, id);
   }
+}
+
+function parseTags(value?: string) {
+  return value ? value.split(",") : [];
 }

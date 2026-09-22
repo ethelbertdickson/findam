@@ -39,6 +39,11 @@ model MediaAsset {
   mimeType         String
   kind             MediaAssetKind
   sizeBytes        Int
+  tags             String[]       @default([])
+  uploadedById     String?
+  uploadedByRole   String?
+  uploadedByName   String?
+  uploadedByEmail  String?
   urlPath          String         @unique
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -47,6 +52,8 @@ model MediaAsset {
   @@index([projectId, createdAt])
   @@index([folderId])
   @@index([kind])
+  @@index([uploadedById])
+  @@index([uploadedByEmail])
 }
 
 model MediaProject {

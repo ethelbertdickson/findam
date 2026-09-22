@@ -12,11 +12,17 @@ export interface StorageProvider {
     buffer: Buffer;
     mimetype: string;
     originalname: string;
-  }): Promise<StoredImage>;
+  }, uploader?: MediaUploader): Promise<StoredImage>;
   uploadImage?(file: {
     buffer: Buffer;
     mimetype: string;
     originalname: string;
   }): Promise<StoredImage>;
   deleteMedia?(publicId: string): Promise<void>;
+}
+
+export interface MediaUploader {
+  id?: string;
+  role?: string;
+  email?: string;
 }

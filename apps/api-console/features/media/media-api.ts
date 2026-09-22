@@ -40,6 +40,11 @@ export interface MediaAsset {
   mimeType: string;
   kind: 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'OTHER';
   sizeBytes: number;
+  tags: string[];
+  uploadedById?: string | null;
+  uploadedByRole?: string | null;
+  uploadedByName?: string | null;
+  uploadedByEmail?: string | null;
   urlPath: string;
   thumbnailPath?: string;
   createdAt: string;
@@ -104,6 +109,10 @@ export async function getMediaAssets(filters: {
   projectSlug: string;
   q: string;
   folderPath: string;
+  tag?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  uploadedBy?: string;
 }) {
   const params = new URLSearchParams({
     page: '1',
@@ -112,6 +121,10 @@ export async function getMediaAssets(filters: {
   });
   if (filters.q) params.set('q', filters.q);
   if (filters.folderPath) params.set('folderPath', filters.folderPath);
+  if (filters.tag) params.set('tag', filters.tag);
+  if (filters.createdAfter) params.set('createdAfter', filters.createdAfter);
+  if (filters.createdBefore) params.set('createdBefore', filters.createdBefore);
+  if (filters.uploadedBy) params.set('uploadedBy', filters.uploadedBy);
   return mediaRequest<MediaAssetPage>(`/assets?${params}`);
 }
 
@@ -137,11 +150,13 @@ export function uploadMediaAsset(
   folderPath: string,
   projectSlug: string,
   csrfToken: string,
+  tags = '',
 ) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('projectSlug', projectSlug);
   if (folderPath) formData.append('folderPath', folderPath);
+  if (tags.trim()) formData.append('tags', tags);
   return mediaRequest<MediaAsset>('/assets', {
     method: 'POST',
     headers: { 'X-CSRF-Token': csrfToken },

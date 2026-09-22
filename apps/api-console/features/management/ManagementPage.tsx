@@ -51,6 +51,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ApiError } from '@/features/auth/admin-auth';
+import { ConsoleHeaderSlot } from '@/app/ConsoleHeaderSlot';
 import {
   getManagedListings,
   getManagedUsers,
@@ -912,30 +913,21 @@ function ManagementLayout({
 }) {
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <ConsoleHeaderSlot>
+        <form onSubmit={onSearch} className="flex min-w-0 flex-1 gap-2">
+          <div className="relative min-w-0 sm:w-56">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={searchPlaceholder} aria-label={searchPlaceholder} className="h-9 pl-9" />
+          </div>
+          <Button type="submit" size="sm">Search</Button>
+        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          {total !== undefined ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
+          {filters}
+        </div>
+      </ConsoleHeaderSlot>
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
-          <div className="flex flex-col gap-3 border-b border-border/70 p-4 sm:flex-row sm:items-center">
-            <form onSubmit={onSearch} className="flex min-w-0 flex-1 gap-2">
-              <div className="relative min-w-0 flex-1 sm:max-w-md">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder={searchPlaceholder}
-                  aria-label={searchPlaceholder}
-                  className="pl-9"
-                />
-              </div>
-              <Button type="submit" size="sm">
-                Search
-              </Button>
-            </form>
-            <div className="flex flex-wrap items-center gap-2">
-              {total !== undefined ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
-              {filters}
-            </div>
-          </div>
-
           {error ? (
             <div className="flex min-h-72 flex-col items-center justify-center px-6 text-center">
               <AlertTriangle className="size-6 text-destructive" />
