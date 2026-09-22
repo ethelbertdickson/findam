@@ -148,6 +148,7 @@ export function MediaLibraryPage({
     return (!kindFilter || asset.kind === kindFilter) && formatMatches;
   });
   const availableFormats = Array.from(new Set(assets.map((asset) => asset.mimeType.split('/')[1]?.toUpperCase()).filter(Boolean))).sort();
+  const deploymentLabel = import.meta.env.DEV ? 'Local' : 'Remote';
 
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -195,13 +196,16 @@ export function MediaLibraryPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="sticky top-0 z-30 mb-4 flex flex-col justify-between gap-4 border-b border-border/70 bg-background/95 py-4 backdrop-blur sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-            Media library
-          </h1>
+      <section className="sticky top-0 z-30 mb-4 flex flex-col justify-between gap-3 border-b border-border/70 bg-background/95 py-3 backdrop-blur sm:flex-row sm:items-center">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
+              Media
+            </h1>
+            <span className="text-xs text-muted-foreground">{deploymentLabel} deployment</span>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <NativeSelect
             aria-label="Media project"
             value={projectSlug}
@@ -224,11 +228,7 @@ export function MediaLibraryPage({
             <FolderPlus />
             New folder
           </Button>
-          <Button
-            size="sm"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
+          <Button size="sm" disabled={uploading} onClick={() => fileInput.current?.click()}>
             <Upload />
             {uploading ? 'Uploading…' : 'Upload file'}
           </Button>
@@ -278,56 +278,69 @@ export function MediaLibraryPage({
                 <NativeSelectOption value="DOCUMENT">Documents</NativeSelectOption>
               </NativeSelect>
               <span className="ml-auto text-xs text-muted-foreground">{visibleAssets.length} shown</span>
-            </div>
-            <div className="flex items-center self-end rounded-lg border border-border/80 p-1" aria-label="Media display mode">
-              {([
-                ['list', List, 'List view'],
-                ['cards', Grid2X2, 'Card view'],
-                ['mosaic', LayoutGrid, 'Mosaic view'],
-              ] as const).map(([mode, Icon, label]) => (
-                <Button
-                  key={mode}
-                  type="button"
-                  size="icon"
-                  variant={viewMode === mode ? 'secondary' : 'ghost'}
-                  className={`${viewMode === mode ? 'size-8 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' : 'size-8 text-muted-foreground hover:text-foreground'} media-tooltip relative`}
-                  aria-label={label}
-                  aria-pressed={viewMode === mode}
-                  data-tooltip={label}
-                  onClick={() => setViewMode(mode)}
-                >
-                  <Icon />
-                </Button>
-              ))}
+              <div className="ml-auto flex items-center gap-3">
+                <div className="flex items-center rounded-lg border border-border/80 p-1" aria-label="Media display mode">
+                  {([
+                    ['list', List, 'List view'],
+                    ['cards', Grid2X2, 'Card view'],
+                    ['mosaic', LayoutGrid, 'Mosaic view'],
+                  ] as const).map(([mode, Icon, label]) => (
+                    <Button
+                      key={mode}
+                      type="button"
+                      size="icon"
+                      variant={viewMode === mode ? 'secondary' : 'ghost'}
+                      className={`${viewMode === mode ? 'size-8 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90' : 'size-8 text-muted-foreground hover:text-foreground'} media-tooltip relative`}
+                      aria-label={label}
+                      aria-pressed={viewMode === mode}
+                      data-tooltip={label}
+                      onClick={() => setViewMode(mode)}
+                    >
+                      <Icon />
+                    </Button>
+                  ))}
+                </div>
+                {selectedIds.length ? (
+                  <div className="flex items-center gap-1 border-l border-border/80 pl-3" aria-label="Batch actions">
+                    <span className="mr-1 hidden text-xs text-muted-foreground sm:inline">{selectedIds.length} selected</span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="media-tooltip size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Delete selected assets"
+                      data-tooltip="Delete selected"
+                      onClick={() => {
+                        if (!window.confirm(`Delete ${selectedIds.length} selected asset${selectedIds.length === 1 ? '' : 's'}?`)) return;
+                        void (async () => {
+                          try {
+                            await Promise.all(selectedIds.map((id) => deleteMediaAsset(id, csrfToken)));
+                            setSelectedIds([]);
+                            await load();
+                          } catch (caught) {
+                            setError(errorMessage(caught));
+                          }
+                        })();
+                      }}
+                    >
+                      <Trash2 />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="media-tooltip size-8 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label="Clear selection"
+                      data-tooltip="Clear selection"
+                      onClick={() => setSelectedIds([])}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
-          {selectedIds.length ? (
-            <div className="flex items-center justify-between gap-3 border-b border-primary/20 bg-primary/5 px-4 py-2 text-sm">
-              <span className="text-muted-foreground">
-                {selectedIds.length} asset{selectedIds.length === 1 ? '' : 's'} selected
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                onClick={() => {
-                  if (!window.confirm(`Delete ${selectedIds.length} selected asset${selectedIds.length === 1 ? '' : 's'}?`)) return;
-                  void (async () => {
-                    try {
-                      await Promise.all(selectedIds.map((id) => deleteMediaAsset(id, csrfToken)));
-                      setSelectedIds([]);
-                      await load();
-                    } catch (caught) {
-                      setError(errorMessage(caught));
-                    }
-                  })();
-                }}
-              >
-                <Trash2 />
-                Delete selected
-              </Button>
-            </div>
-          ) : null}
           {loading && !assets.length ? (
             <div className="grid min-h-80 place-items-center">
               <Loader2 className="size-5 animate-spin text-primary" />
