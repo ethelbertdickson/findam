@@ -84,28 +84,9 @@ export function AuditLogPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex items-start gap-3">
-        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-          <ScrollText className="size-5" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-              Audit log
-            </h1>
-            {result ? (
-              <Badge variant="outline">{total.toLocaleString()}</Badge>
-            ) : null}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            A permanent record of administrative changes in this console.
-          </p>
-        </div>
-      </section>
-
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
-          <div className="border-b border-border/70 p-4">
+          <div className="flex items-center gap-2 border-b border-border/70 p-4">
             <NativeSelect
               aria-label="Filter audit log by action"
               value={action}
@@ -121,6 +102,7 @@ export function AuditLogPage({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+            {result ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
           </div>
 
           {error ? (

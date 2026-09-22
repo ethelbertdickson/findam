@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Check,
   Copy,
-  FolderKanban,
   KeyRound,
   Loader2,
   Plus,
@@ -21,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConsoleHeaderSlot } from '@/app/ConsoleHeaderSlot';
 import {
   Card,
   CardContent,
@@ -169,23 +169,11 @@ export function MediaProjectsPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <FolderKanban className="size-3.5" /> Isolated application storage
-          </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-            Media projects
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Administrators create projects and issue scoped keys to trusted
-            apps.
-          </p>
-        </div>
+      <ConsoleHeaderSlot>
         <Button size="sm" onClick={() => setProjectDialogOpen(true)}>
           <Plus /> New project
         </Button>
-      </section>
+      </ConsoleHeaderSlot>
 
       {error ? (
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">

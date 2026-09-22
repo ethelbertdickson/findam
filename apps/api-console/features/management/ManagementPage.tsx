@@ -236,11 +236,6 @@ export function AdminUsersPage({
   return (
     <ManagementLayout
       title={fixedRole === 'AGENT' ? 'Agents' : 'Users'}
-      description={
-        fixedRole === 'AGENT'
-          ? 'Review and manage every marketplace agent.'
-          : 'Search and review every account using Findam.'
-      }
       icon={Users}
       total={result?.total}
       search={search}
@@ -595,7 +590,6 @@ export function AdminListingsPage({
   return (
     <ManagementLayout
       title="Listings"
-      description="Review the inventory currently stored in the marketplace."
       icon={House}
       total={result?.total}
       search={search}
@@ -885,7 +879,6 @@ function actionDialogCopy(action: PendingManagementAction) {
 
 function ManagementLayout({
   title,
-  description,
   icon: Icon,
   total,
   search,
@@ -902,7 +895,6 @@ function ManagementLayout({
   children,
 }: {
   title: string;
-  description: string;
   icon: typeof Users;
   total: number | undefined;
   search: string;
@@ -920,23 +912,6 @@ function ManagementLayout({
 }) {
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex items-start gap-3">
-        <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-              {title}
-            </h1>
-            {total !== undefined ? (
-              <Badge variant="outline">{total.toLocaleString()}</Badge>
-            ) : null}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        </div>
-      </section>
-
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
           <div className="flex flex-col gap-3 border-b border-border/70 p-4 sm:flex-row sm:items-center">
@@ -955,7 +930,10 @@ function ManagementLayout({
                 Search
               </Button>
             </form>
-            <div className="flex flex-wrap gap-2">{filters}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {total !== undefined ? <Badge variant="outline">{total.toLocaleString()} total</Badge> : null}
+              {filters}
+            </div>
           </div>
 
           {error ? (

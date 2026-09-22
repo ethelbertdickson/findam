@@ -36,6 +36,7 @@ import {
   type OperationalTaskRun,
 } from './admin-operations';
 import type { PaginatedResponse } from '@/features/management/admin-resources';
+import { ConsoleHeaderSlot } from '@/app/ConsoleHeaderSlot';
 
 type RecoverSession = () => Promise<boolean>;
 
@@ -84,31 +85,11 @@ export function MonitoringPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <Clock3 className="size-3.5" />
-            {monitoring
-              ? `Updated ${formatRelativeTime(monitoring.generatedAt)}`
-              : 'Collecting live telemetry'}
-          </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-            API monitoring
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Real request activity from the last five minutes of this API
-            process.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={loading}
-          onClick={() => void load()}
-        >
+      <ConsoleHeaderSlot>
+        <Button variant="outline" size="sm" disabled={loading} onClick={() => void load()}>
           <RefreshCw className={loading ? 'animate-spin' : ''} /> Refresh
         </Button>
-      </section>
+      </ConsoleHeaderSlot>
 
       {error ? (
         <FailureState message={error} onRetry={() => void load()} />
@@ -354,20 +335,12 @@ export function TaskRunsPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-            Operational tasks
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Run safe checks now and retain their results for operations history.
-          </p>
-        </div>
+      <ConsoleHeaderSlot>
         <Button size="sm" disabled={running} onClick={() => void runCheck()}>
           <Play />
           {running ? 'Running check…' : 'Run database check'}
         </Button>
-      </section>
+      </ConsoleHeaderSlot>
       {error ? (
         <FailureState message={error} onRetry={() => void load()} />
       ) : (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, ChevronRight, Loader2, MapPin, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,10 +65,6 @@ export function AdminLocationsPage({ recoverSession }: { recoverSession: Recover
   const path = [selected(countries, countryId), selected(states, stateId), selected(cities, cityId)].filter(Boolean);
 
   return <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-    <section className="mb-6 flex items-start gap-3">
-      <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="size-5" /></div>
-      <div><div className="flex items-center gap-2"><h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">Locations</h1><Badge variant="outline">Read-only</Badge></div><p className="mt-1 text-sm text-muted-foreground">Browse the location hierarchy used by Findam listings.</p></div>
-    </section>
     <Card className="border-border/80 bg-card/72 shadow-none ring-0">
       <CardHeader className="border-b border-border/70"><CardTitle className="text-base">Location browser</CardTitle><p className="text-sm text-muted-foreground">Select a country, state, and city to inspect its areas.</p></CardHeader>
       <CardContent className="space-y-6 p-4 sm:p-6">

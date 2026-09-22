@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle2,
-  Clock3,
   Download,
   Database,
   FolderKanban,
@@ -415,6 +414,17 @@ function Dashboard({
           </div>
           <div className="ml-auto flex items-center gap-2">
             <div id="console-header-actions" className="flex items-center gap-2" />
+            {activeView === 'overview' ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={refreshing}
+                onClick={() => void loadDashboard()}
+              >
+                <RefreshCw className={refreshing ? 'animate-spin' : ''} />
+                Refresh
+              </Button>
+            ) : null}
             <Badge
               variant="outline"
               className="hidden border-success/25 bg-success/8 text-success sm:inline-flex"
@@ -454,41 +464,6 @@ function Dashboard({
             id="overview"
             className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
           >
-            <section className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock3 className="size-3.5" />
-                  {dashboard
-                    ? `Updated ${formatRelativeTime(dashboard.generatedAt)}`
-                    : 'Connecting to live data'}
-                </div>
-                <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-                  System overview
-                </h1>
-                <p className="mt-1.5 text-sm text-muted-foreground">
-                  Monitor the Findam API and marketplace from one place.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="border-success/25 bg-success/8 text-success"
-                >
-                  <span className="size-1.5 rounded-full bg-success" />
-                  Live data
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={refreshing}
-                  onClick={() => void loadDashboard()}
-                >
-                  <RefreshCw className={refreshing ? 'animate-spin' : ''} />
-                  Refresh
-                </Button>
-              </div>
-            </section>
-
             {dashboardError ? (
               <div
                 role="alert"
