@@ -85,6 +85,8 @@ export function MediaLibraryPage({
   const [folderName, setFolderName] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [galleryAssetId, setGalleryAssetId] = useState<string | null>(null);
+  const [kindFilter, setKindFilter] = useState<MediaAsset['kind'] | ''>('');
+  const [formatFilter, setFormatFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'cards' | 'mosaic'>(() =>
     (window.localStorage.getItem('findam-media-view') as 'list' | 'cards' | 'mosaic') || 'cards',
   );
@@ -141,6 +143,12 @@ export function MediaLibraryPage({
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  const visibleAssets = assets.filter((asset) => {
+    const formatMatches = !formatFilter || asset.mimeType.split('/')[1]?.toUpperCase() === formatFilter;
+    return (!kindFilter || asset.kind === kindFilter) && formatMatches;
+  });
+  const availableFormats = Array.from(new Set(assets.map((asset) => asset.mimeType.split('/')[1]?.toUpperCase()).filter(Boolean))).sort();
+
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -187,18 +195,11 @@ export function MediaLibraryPage({
 
   return (
     <main className="mx-auto w-full max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <section className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <section className="sticky top-0 z-30 mb-4 flex flex-col justify-between gap-4 border-b border-border/70 bg-background/95 py-4 backdrop-blur sm:flex-row sm:items-center">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <Image className="size-3.5" /> Local-first storage
-          </div>
           <h1 className="text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
             Media library
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Files live on the media service, while folders and metadata stay
-            ready for future Findam apps.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <NativeSelect
@@ -251,29 +252,34 @@ export function MediaLibraryPage({
       ) : null}
       <Card className="border-border/80 bg-card/72 shadow-none ring-0">
         <CardContent className="p-0">
-          <div className="flex flex-col gap-3 border-b border-border/70 p-4 sm:flex-row">
-            <div className="relative min-w-0 flex-1">
+          <div className="flex flex-col gap-3 border-b border-border/70 p-4">
+            <div className="relative min-w-0">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search media files"
-                className="pl-9"
+                placeholder="Type a name, tag, or metadata to find assets…"
+                className="h-11 pl-9 text-base"
               />
             </div>
-            <NativeSelect
-              aria-label="Filter by folder"
-              value={folderPath}
-              onChange={(event) => setFolderPath(event.target.value)}
-            >
-              <NativeSelectOption value="">All folders</NativeSelectOption>
-              {folders.map((folder) => (
-                <NativeSelectOption key={folder.id} value={folder.path}>
-                  {folder.path} ({folder._count.assets})
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <div className="flex items-center rounded-lg border border-border/80 p-1" aria-label="Media display mode">
+            <div className="flex flex-wrap items-center gap-2">
+              <NativeSelect aria-label="Filter by folder" value={folderPath} onChange={(event) => setFolderPath(event.target.value)}>
+                <NativeSelectOption value="">Folders</NativeSelectOption>
+                {folders.map((folder) => <NativeSelectOption key={folder.id} value={folder.path}>{folder.path} ({folder._count.assets})</NativeSelectOption>)}
+              </NativeSelect>
+              <NativeSelect aria-label="Filter by format" value={formatFilter} onChange={(event) => setFormatFilter(event.target.value)}>
+                <NativeSelectOption value="">Formats</NativeSelectOption>
+                {availableFormats.map((format) => <NativeSelectOption key={format} value={format}>{format}</NativeSelectOption>)}
+              </NativeSelect>
+              <NativeSelect aria-label="Filter by asset type" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as MediaAsset['kind'] | '')}>
+                <NativeSelectOption value="">Asset types</NativeSelectOption>
+                <NativeSelectOption value="IMAGE">Images</NativeSelectOption>
+                <NativeSelectOption value="VIDEO">Videos</NativeSelectOption>
+                <NativeSelectOption value="DOCUMENT">Documents</NativeSelectOption>
+              </NativeSelect>
+              <span className="ml-auto text-xs text-muted-foreground">{visibleAssets.length} shown</span>
+            </div>
+            <div className="flex items-center self-end rounded-lg border border-border/80 p-1" aria-label="Media display mode">
               {([
                 ['list', List, 'List view'],
                 ['cards', Grid2X2, 'Card view'],
@@ -332,12 +338,12 @@ export function MediaLibraryPage({
                 viewMode === 'list'
                   ? 'divide-y divide-border/70'
                   : viewMode === 'mosaic'
-                    ? 'grid auto-flow-dense auto-rows-[240px] grid-cols-12 gap-4 p-4'
+                    ? 'grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 xl:grid-cols-4'
                     : 'grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
               }
             >
               {viewMode === 'list' ? <div className="hidden grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] gap-4 bg-muted/20 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground lg:grid"><span>Display name</span><span>Containing folder</span><span>Asset type</span><span>Format</span><span>Size</span><span>Dimensions</span><span>Delivery</span><span>Access</span><span /></div> : null}
-              {assets.map((asset) => (
+              {visibleAssets.map((asset) => (
                 <AssetCard
                   key={asset.id}
                   asset={asset}
@@ -368,7 +374,7 @@ export function MediaLibraryPage({
       </Card>
       {galleryAssetId ? (
         <AssetGallery
-          assets={assets}
+          assets={visibleAssets}
           activeId={galleryAssetId}
           onClose={() => setGalleryAssetId(null)}
           onChange={setGalleryAssetId}
@@ -436,14 +442,10 @@ function AssetCard({
     window.setTimeout(() => setCopied(false), 1400);
   }
   const format = asset.mimeType.split('/')[1]?.toUpperCase() ?? '—';
-  const parsedWidth = dimensions.includes('×') ? Number(dimensions.split('×')[0].trim()) : 0;
-  const parsedHeight = dimensions.includes('×') ? Number(dimensions.split('×')[1].trim()) : 0;
-  const ratio = parsedWidth && parsedHeight ? parsedWidth / parsedHeight : 1;
-  const mosaicSpan = ratio >= 1.8 ? 6 : ratio >= 1.25 ? 4 : ratio >= 0.8 ? 3 : 2;
   const imageClass = viewMode === 'cards'
     ? 'size-full object-contain p-3'
     : viewMode === 'mosaic'
-      ? 'size-full object-cover'
+      ? 'size-full object-contain p-1'
       : 'size-full object-contain';
   const imagePreview = asset.kind === 'IMAGE' ? (
     // oxlint-disable-next-line next/no-img-element -- media assets are dynamic records served by the media service.
@@ -458,29 +460,30 @@ function AssetCard({
   const durationLabel = duration !== null ? formatDuration(duration) : '—';
   if (viewMode === 'list') {
     return (
-      <article className="group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20">
+      <article className={`group relative grid grid-cols-[minmax(220px,2fr)_minmax(120px,1fr)_90px_80px_90px_100px_90px_90px_72px] items-center gap-4 px-4 py-3 hover:bg-muted/20 ${selected ? 'bg-primary/8 ring-1 ring-inset ring-primary/35' : ''}`}>
         <div className="flex min-w-0 items-center gap-3">
         <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-muted/40">
           {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className="size-full object-cover" preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} onLoadedData={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white"><Play className="ml-0.5 size-3.5 fill-current" /></span></button> : <Icon className="size-5 text-muted-foreground" />}
         </div>
-        <div className="min-w-0"><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></div>
+        <button type="button" className="min-w-0 cursor-pointer text-left" onClick={onToggleSelect} aria-label={`${selected ? 'Deselect' : 'Select'} ${asset.originalFilename}`}><p className="truncate text-sm font-medium">{asset.originalFilename}</p><p className="truncate text-xs text-muted-foreground">{asset.id}</p></button>
         </div>
-        <span className="truncate text-xs text-muted-foreground">{asset.folder?.path ?? 'Unfiled'}</span>
-        <span className="text-xs capitalize text-muted-foreground">{asset.kind.toLowerCase()}</span>
-        <span className="text-xs uppercase text-muted-foreground">{asset.mimeType.split('/')[1] ?? '—'}</span>
-        <span className="text-xs text-muted-foreground">{formatBytes(asset.sizeBytes)}</span>
-        <span className="text-xs text-muted-foreground">{dimensions}</span>
-        <span className="text-xs text-muted-foreground">Upload</span>
-        <span className="text-xs text-muted-foreground">Public</span>
+        <button type="button" className="truncate text-left text-xs text-muted-foreground" onClick={onToggleSelect}>{asset.folder?.path ?? 'Unfiled'}</button>
+        <button type="button" className="text-left text-xs capitalize text-muted-foreground" onClick={onToggleSelect}>{asset.kind.toLowerCase()}</button>
+        <button type="button" className="text-left text-xs uppercase text-muted-foreground" onClick={onToggleSelect}>{asset.mimeType.split('/')[1] ?? '—'}</button>
+        <button type="button" className="text-left text-xs text-muted-foreground" onClick={onToggleSelect}>{formatBytes(asset.sizeBytes)}</button>
+        <button type="button" className="text-left text-xs text-muted-foreground" onClick={onToggleSelect}>{dimensions}</button>
+        <button type="button" className="text-left text-xs text-muted-foreground" onClick={onToggleSelect}>Upload</button>
+        <button type="button" className="text-left text-xs text-muted-foreground" onClick={onToggleSelect}>Public</button>
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} inline />
       </article>
     );
   }
   return (
-    <article style={viewMode === 'mosaic' ? { gridColumn: `span ${mosaicSpan} / span ${mosaicSpan}` } : undefined} className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background/30 ${selected ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'} ${viewMode === 'cards' ? 'h-[394px]' : viewMode === 'mosaic' ? 'h-[240px]' : ''}`}>
+    <article className={`group relative flex min-w-0 flex-col overflow-hidden rounded-xl border bg-background/30 ${selected ? 'border-primary ring-2 ring-primary/25' : 'border-border/80'} ${viewMode === 'cards' ? 'h-[394px]' : viewMode === 'mosaic' ? 'aspect-[4/3]' : ''}`}>
       <div className={`relative grid min-h-0 place-items-center bg-muted/40 ${viewMode === 'cards' ? 'h-[326px] flex-none' : viewMode === 'mosaic' ? 'flex-1' : 'p-3 aspect-[4/3]'}`}>
           {asset.kind === 'IMAGE' ? <button type="button" className="size-full" onClick={onPreview} aria-label="Enlarge image">{imagePreview}</button> : asset.kind === 'VIDEO' ? <button type="button" className="group/video relative size-full" onClick={onPreview} aria-label="Play video"><video src={asset.urlPath} poster={asset.thumbnailPath} className={imageClass} preload="metadata" muted playsInline onLoadedMetadata={videoMetadata} onLoadedData={videoMetadata} /><span className="pointer-events-none absolute left-1/2 top-1/2 grid size-12 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg ring-1 ring-white/40 transition-transform group-hover/video:scale-105"><Play className="ml-0.5 size-5 fill-current" /></span></button> : <Icon className="size-7 text-muted-foreground" />}
         <AssetActions asset={asset} copied={copied} onCopy={copyUrl} onDelete={onDelete} />
+        {viewMode === 'mosaic' ? <button type="button" onClick={(event) => { event.stopPropagation(); onToggleSelect(); }} aria-label={`${selected ? 'Deselect' : 'Select'} ${asset.originalFilename}`} className={`absolute left-2 top-2 z-10 grid size-8 place-items-center rounded-md border text-white shadow-sm backdrop-blur-sm ${selected ? 'border-primary bg-primary' : 'border-white/40 bg-black/55 hover:bg-black/75'}`}>{selected ? <Check className="size-4" /> : null}</button> : null}
         {viewMode === 'cards' ? <button type="button" onClick={() => setDetailsOpen((open) => !open)} aria-label="Show asset metadata" data-tooltip="Show metadata" className="media-tooltip absolute bottom-2 right-2 z-10 grid size-7 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-black/85"><Info className="size-3.5" /></button> : null}
         {detailsOpen ? <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/65 p-4 text-xs text-white backdrop-blur-[2px]"><p className="truncate font-medium">{asset.originalFilename}</p><p className="mt-1">{format} · {dimensions}{asset.kind === 'VIDEO' ? ` · ${durationLabel}` : ''}</p><p className="mt-1">{formatBytes(asset.sizeBytes)} · Upload · Public</p><p className="mt-1 truncate text-white/70">{asset.folder?.path ?? 'Unfiled'}</p><button type="button" onClick={() => setDetailsOpen(false)} className="mt-3 self-start text-[11px] underline underline-offset-2">Close details</button></div> : null}
       </div>
