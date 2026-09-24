@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as ImagePicker from "expo-image-picker";
 import {
   Alert,
   Image,
@@ -17,6 +16,7 @@ import { createManagedProfessional } from "../../services/professionals";
 import { uploadImage } from "../../services/listings";
 import { Button } from "../../components/Button";
 import { getApiErrorMessage } from "../../utils/errors";
+import { chooseMedia } from "../../utils/media-picker";
 import type { ProfessionalCategory } from "../../types";
 const categories: ProfessionalCategory[] = [
   "PLUMBER",
@@ -40,8 +40,8 @@ export default function NewProfessionalScreen() {
   const [photo, setPhoto] = useState<string>();
   const [loading, setLoading] = useState(false);
   const choosePhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.85 });
-    if (!result.canceled) setPhoto(result.assets[0].uri);
+    const result = await chooseMedia("image");
+    if (result && !result.canceled) setPhoto(result.assets[0].uri);
   };
   const save = async () => {
     if (!name.trim() || !phone.trim())

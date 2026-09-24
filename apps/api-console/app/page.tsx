@@ -430,7 +430,7 @@ function Dashboard({
               className="hidden border-success/25 bg-success/8 text-success sm:inline-flex"
             >
               <span className="size-1.5 rounded-full bg-success" />
-              {import.meta.env.DEV ? 'Local development' : 'Remote deployment'}
+              {import.meta.env.DEV ? 'Local' : 'Remote'}
             </Badge>
             <nav
               className="flex gap-1 lg:hidden"

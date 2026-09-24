@@ -64,7 +64,7 @@ export default function LandScreen() {
           </Pressable>
         </View>
       )}
-      <ListingFeed type="LAND" tenure={selected} filters={searchFilters} />
+      <ListingFeed type="LAND" tenure={selected} filters={searchFilters} showPropertyMeta />
       <FloatingCreateButton type="LAND" />
       <SearchOverlay
         visible={searchOpen}

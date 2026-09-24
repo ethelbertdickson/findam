@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { Link, router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,7 +41,24 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Text style={styles.title}>Settings</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.eyebrow}>ACCOUNT</Text>
+          <Text style={styles.title}>Settings</Text>
+        </View>
+        <View style={styles.headerIcon}><Ionicons name="settings-outline" size={22} color={COLORS.primary} /></View>
+      </View>
+
+      {isAuthenticated && user && (
+        <View style={styles.profileCard}>
+          <View style={styles.avatar}>{user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} contentFit="cover" /> : <Text style={styles.avatarText}>{(user.firstName?.[0] || user.email[0]).toUpperCase()}</Text>}</View>
+          <View style={styles.profileCopy}>
+            <Text style={styles.profileName}>{user.firstName} {user.lastName}</Text>
+            <Text style={styles.profileEmail}>{user.email}</Text>
+          </View>
+          <View style={styles.modePill}><Text style={styles.modeText}>{user.role === "AGENT" ? "AGENT" : "USER"}</Text></View>
+        </View>
+      )}
 
       {!isAuthenticated && (
         <View style={styles.authBanner}>
@@ -53,7 +71,7 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {isAuthenticated && (
           <Pressable
             style={styles.createButton}
@@ -77,6 +95,8 @@ export default function SettingsScreen() {
             </Text>
           </Pressable>
         )}
+        <Text style={styles.sectionLabel}>ACCOUNT & ACTIVITY</Text>
+        <View style={styles.menuCard}>
         {[profileRow, ...ROWS].map((row) => (
           <Pressable
             key={row.label}
@@ -91,15 +111,16 @@ export default function SettingsScreen() {
               }
             }}
           >
-            <Ionicons name={row.icon} size={20} color={COLORS.text} />
+            <View style={styles.rowIcon}><Ionicons name={row.icon} size={19} color={COLORS.primary} /></View>
             <Text style={styles.rowLabel}>{row.label}</Text>
             <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
           </Pressable>
         ))}
+        </View>
 
         {isAuthenticated && (
-          <Pressable style={styles.row} onPress={() => logout()}>
-            <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
+          <Pressable style={[styles.row, styles.logoutRow]} onPress={() => logout()}>
+            <View style={[styles.rowIcon, styles.logoutIcon]}><Ionicons name="log-out-outline" size={19} color={COLORS.danger} /></View>
             <Text style={[styles.rowLabel, { color: COLORS.danger }]}>
               Logout
             </Text>
@@ -114,14 +135,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+    paddingTop: 8,
   },
+  content: { paddingBottom: 32 },
+  header: { paddingHorizontal: 16, paddingBottom: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  eyebrow: { color: COLORS.primary, fontSize: 11, fontWeight: "800", letterSpacing: 1.4, marginBottom: 3 },
   title: {
     fontSize: 22,
     fontWeight: "800",
     color: COLORS.text,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 0,
   },
+  headerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" },
+  profileCard: { marginHorizontal: 16, marginBottom: 16, padding: 14, borderRadius: 16, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, flexDirection: "row", alignItems: "center" },
+  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 19 },
+  avatarImage: { width: "100%", height: "100%", borderRadius: 14 },
+  profileCopy: { flex: 1, marginLeft: 11 },
+  profileName: { color: COLORS.text, fontWeight: "800", fontSize: 15 },
+  profileEmail: { color: COLORS.muted, fontSize: 12, marginTop: 3 },
+  modePill: { borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6, backgroundColor: `${COLORS.primary}22` },
+  modeText: { color: COLORS.primary, fontSize: 10, fontWeight: "800" },
+  sectionLabel: { color: COLORS.muted, fontSize: 11, fontWeight: "800", letterSpacing: 1.2, marginHorizontal: 16, marginBottom: 8 },
+  menuCard: { marginHorizontal: 16, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
   authBanner: {
     marginHorizontal: 16,
     marginBottom: 8,
@@ -145,11 +182,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 13,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: COLORS.border,
+    minHeight: 62,
   },
+  rowIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: `${COLORS.primary}18`, alignItems: "center", justifyContent: "center" },
+  logoutIcon: { backgroundColor: `${COLORS.danger}18` },
+  logoutRow: { marginHorizontal: 16, marginTop: 16, borderWidth: 1, borderColor: `${COLORS.danger}44`, borderRadius: 16, backgroundColor: COLORS.surface },
   rowLabel: {
     flex: 1,
     fontSize: 15,

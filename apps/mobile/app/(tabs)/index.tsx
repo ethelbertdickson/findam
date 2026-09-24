@@ -90,19 +90,19 @@ export default function HomeScreen() {
             actionLabel="See all"
             onActionPress={() => router.push("/properties")}
           />
-          <ListingFeed type="PROPERTY" horizontal />
+          <ListingFeed type="PROPERTY" horizontal showPropertyMeta />
           <SectionHeader
             title="Land"
             actionLabel="See all"
             onActionPress={() => router.push("/land")}
           />
-          <ListingFeed type="LAND" horizontal />
+          <ListingFeed type="LAND" horizontal showPropertyMeta />
           <SectionHeader
             title="Household finds"
             actionLabel="See all"
             onActionPress={() => router.push("/household")}
           />
-          <ListingFeed type="HOUSEHOLD" horizontal />
+          <ListingFeed type="HOUSEHOLD" horizontal showPropertyMeta />
         </ScrollView>
       )}
       <FloatingCreateButton />

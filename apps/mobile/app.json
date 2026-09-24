@@ -27,6 +27,7 @@
       "expo-image",
       "expo-secure-store",
       "expo-status-bar",
+      "@react-native-google-signin/google-signin",
       [
         "expo-splash-screen",
         {

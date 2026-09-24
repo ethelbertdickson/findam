@@ -28,12 +28,15 @@ export function ListingCard({
 }: ListingCardProps) {
   const mainImage = listing.images[0]?.url;
   const agencyFee = getAgencyFee(listing);
-  const offerLabel =
-    listing.propertyDetails?.offerType === "SALE"
+  const offerLabel = listing.type === "PROPERTY"
+    ? listing.propertyDetails?.offerType === "SALE"
       ? "For Sale"
       : listing.propertyDetails?.offerType === "SHORT_LET"
         ? "Short Let"
-        : "For Rent";
+        : "For Rent"
+    : listing.type === "LAND"
+      ? listing.landDetails?.tenure === "LEASE" ? "For Lease" : "For Sale"
+      : "For Sale";
 
   return (
     <Pressable
@@ -54,7 +57,7 @@ export function ListingCard({
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]} />
         )}
-        {showPropertyMeta && listing.propertyDetails && (
+        {showPropertyMeta && (
           <View style={styles.offerBadge}>
             <Text style={styles.offerText}>{offerLabel}</Text>
           </View>

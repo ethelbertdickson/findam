@@ -6,7 +6,11 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.grastadomhan.com/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "157598011834-cv8hmh5j8vqhdantr75msjjd52ie874g.apps.googleusercontent.com"
+      }
     },
     "preview": {
       "distribution": "internal",

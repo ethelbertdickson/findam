@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -39,6 +38,7 @@ import type {
 } from "../../types";
 import { CURRENCIES, formatAmountInput, parseAmountInput } from "../../utils/currency";
 import { getApiErrorMessage } from "../../utils/errors";
+import { chooseMedia } from "../../utils/media-picker";
 
 const TYPES: { label: string; value: ListingType }[] = [
   { label: "Property", value: "PROPERTY" },
@@ -290,13 +290,8 @@ export default function CreateListingScreen() {
       Alert.alert("Photo limit", "You can add up to five photos.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      quality: 0.75,
-      selectionLimit: 5 - photos.length,
-    });
-    if (!result.canceled)
+    const result = await chooseMedia("image", { multiple: true });
+    if (result && !result.canceled)
       setPhotos((current) =>
         [...current, ...result.assets.map((asset) => ({ uri: asset.uri, mediaType: "IMAGE" as const }))].slice(0, 5),
       );
@@ -311,12 +306,8 @@ export default function CreateListingScreen() {
       Alert.alert("Media limit", "You can add up to five media items.");
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["videos"],
-      videoMaxDuration: 60,
-      quality: 0.7,
-    });
-    if (!result.canceled && result.assets[0])
+    const result = await chooseMedia("video", { maxDuration: 60 });
+    if (result && !result.canceled && result.assets[0])
       setPhotos((current) => [...current, { uri: result.assets[0].uri, mediaType: "VIDEO" }]);
   };
 

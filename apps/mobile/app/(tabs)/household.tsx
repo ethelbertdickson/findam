@@ -79,6 +79,7 @@ export default function HouseholdScreen() {
         type="HOUSEHOLD"
         category={selected}
         filters={searchFilters}
+        showPropertyMeta
       />
       <FloatingCreateButton type="HOUSEHOLD" />
       <SearchOverlay
