@@ -22,6 +22,7 @@ import { ProjectorProModule } from './projectorpro/projectorpro.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
 import { ServicesModule } from './services/services.module';
 import { RequestsModule } from './requests/requests.module';
+import { IntegrationModule } from './integration/integration.module';
 
 dotenv.config({ path: join(__dirname, '../.env.production') });
 dotenv.config({ path: join(__dirname, '../.env') });
@@ -59,6 +60,7 @@ dotenv.config({ path: join(__dirname, '../.env') });
     ProfessionalsModule,
     ServicesModule,
     RequestsModule,
+    IntegrationModule,
   ],
   providers: [
     {

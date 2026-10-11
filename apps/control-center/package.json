@@ -1,0 +1,18 @@
+{
+  "name": "@grasta/control-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent server-side aggregator for Grasta Domhan product health and usage",
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "node --watch --import tsx src/server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
+}

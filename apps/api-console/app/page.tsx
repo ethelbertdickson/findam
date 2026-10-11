@@ -14,6 +14,7 @@ import {
   Loader2,
   LogOut,
   MapPin,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
   RefreshCw,
@@ -60,6 +61,7 @@ import { MediaProjectsPage } from '@/features/media/MediaProjectsPage';
 import { AdminLocationsPage } from '@/features/locations/LocationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { DownloadsPage } from '@/features/management/DownloadsPage';
+import { ControlCentrePage } from '@/features/control-center/ControlCentrePage';
 
 type ConsoleView =
   | 'overview'
@@ -73,10 +75,12 @@ type ConsoleView =
   | 'projects'
   | 'media'
   | 'audit'
-  | 'downloads';
+  | 'downloads'
+  | 'control';
 
 const navigation = [
   { label: 'Overview', icon: LayoutDashboard, view: 'overview', enabled: true },
+  { label: 'Control Centre', icon: Network, view: 'control', enabled: true },
   { label: 'Users', icon: Users, view: 'users', enabled: true },
   { label: 'Downloads', icon: Download, view: 'downloads', enabled: true },
   { label: 'Listings', icon: House, view: 'listings', enabled: true },
@@ -657,6 +661,8 @@ function Dashboard({
               />
             </section>
           </main>
+        ) : activeView === 'control' ? (
+          <ControlCentrePage />
         ) : activeView === 'users' ? (
           <AdminUsersPage
             recoverSession={recoverSession}
@@ -833,6 +839,7 @@ function titleCase(value: string) {
 function readConsoleView(hash: string): ConsoleView {
   const view = hash.replace('#', '');
   return view === 'users' ||
+    view === 'control' ||
     view === 'agents' ||
     view === 'locations' ||
     view === 'settings' ||

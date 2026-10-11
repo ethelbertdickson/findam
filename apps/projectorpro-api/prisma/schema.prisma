@@ -1,0 +1,164 @@
+// Projector Pro owns this schema independently from Findam.
+// Existing IDs and auth hashes are preserved during the initial migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PROJECTORPRO_DATABASE_URL")
+}
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+  @@map("Role")
+}
+
+enum ProjectorProCreditEntryType {
+  PURCHASE
+  RESERVATION
+  CONSUMPTION
+  RELEASE
+  @@map("ProjectorProCreditEntryType")
+}
+
+enum ProjectorProSessionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  @@map("ProjectorProSessionStatus")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  phone         String?  @unique
+  passwordHash  String?
+  googleId      String?  @unique
+  firstName     String
+  lastName      String
+  avatarUrl     String?
+  avatarMediaId  String?
+  role          Role     @default(USER)
+  currencyCode  String   @default("NGN")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now()) @updatedAt
+  updatedAt     DateTime @updatedAt
+  refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  projectorProWallet ProjectorProWallet?
+  projectorProPurchases ProjectorProPurchase[]
+  projectorProSessions ProjectorProSession[]
+  projectorProTrialDevices ProjectorProTrialDevice[]
+  @@index([role])
+  @@map("User")
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@map("RefreshToken")
+}
+
+model PasswordResetToken {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("PasswordResetToken")
+}
+
+model PendingRegistration {
+  id String @id @default(uuid())
+  email String @unique
+  passwordHash String
+  firstName String
+  lastName String
+  codeHash String
+  expiresAt DateTime
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([expiresAt])
+  @@map("PendingRegistration")
+}
+
+model ProjectorProWallet {
+  id String @id @default(uuid())
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceSeconds Int @default(0)
+  trialGrantedAt DateTime?
+  entries ProjectorProCreditEntry[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("ProjectorProWallet")
+}
+
+model ProjectorProTrialDevice {
+  id String @id @default(uuid())
+  deviceId String @unique
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedAt DateTime @default(now())
+  @@index([userId])
+  @@map("ProjectorProTrialDevice")
+}
+
+model ProjectorProCreditEntry {
+  id String @id @default(uuid())
+  walletId String
+  wallet ProjectorProWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type ProjectorProCreditEntryType
+  seconds Int
+  reference String? @unique
+  description String
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([walletId, createdAt])
+  @@map("ProjectorProCreditEntry")
+}
+
+model ProjectorProPurchase {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageCode String
+  amountKobo Int
+  creditSeconds Int
+  paystackRef String @unique
+  status String
+  createdAt DateTime @default(now())
+  fulfilledAt DateTime?
+  @@index([userId, createdAt])
+  @@map("ProjectorProPurchase")
+}
+
+model ProjectorProSession {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installationId String
+  reservedSeconds Int
+  consumedSeconds Int @default(0)
+  status ProjectorProSessionStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  lastHeartbeatAt DateTime?
+  completedAt DateTime?
+  @@index([userId, status])
+  @@index([installationId])
+  @@map("ProjectorProSession")
+}

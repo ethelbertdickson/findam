@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Projector Pro · Account</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="/"><span class="brand-mark">P</span><span><strong>Projector Pro</strong><small>Your presentation account</small></span></a>
+        <a class="back-link" href="/">Back to site</a>
+      </header>
+
+      <main>
+        <section id="login-view" class="auth-card">
+          <p class="eyebrow">Projector Pro account</p>
+          <h1>Sign in to manage your access.</h1>
+          <p class="lead">See your trial time, purchased credits, payment history, and top up whenever you need more time.</p>
+          <form id="login-form">
+            <label>Email<input id="email" type="email" autocomplete="email" required /></label>
+            <label>Password<input id="password" type="password" autocomplete="current-password" required /></label>
+            <button class="primary" type="submit">Sign in</button>
+            <p id="login-error" class="error" hidden></p>
+          </form>
+          <div class="signin-divider"><span>or</span></div>
+          <div id="google-signin" class="google-signin"></div>
+          <p id="google-error" class="error" hidden></p>
+          <p class="fine-print">Use the same Google account you use in Projector Pro.</p>
+        </section>
+
+        <section id="account-view" hidden>
+          <div class="welcome-row"><div><p class="eyebrow">Signed in</p><h1 id="welcome">Your account</h1><p class="lead">Your free allowance and purchased time are kept separate.</p></div><button id="sign-out" class="quiet" type="button">Sign out</button></div>
+          <div class="balance-grid">
+            <article class="balance-card trial"><span>Trial remaining</span><strong id="trial-remaining">—</strong><small id="trial-detail">One-time free allowance</small></article>
+            <article class="balance-card purchased"><span>Purchased remaining</span><strong id="purchased-remaining">—</strong><small id="purchased-detail">Top-ups stay on your account</small></article>
+            <article class="balance-card total"><span>Total available</span><strong id="total-remaining">—</strong><small>Ready for transcription</small></article>
+          </div>
+          <section class="panel">
+            <div class="section-heading"><div><p class="eyebrow">Top up</p><h2>Add more presentation time</h2></div><span>Secure checkout by Paystack</span></div>
+            <div id="packages" class="packages"></div>
+            <p id="checkout-error" class="error" hidden></p>
+          </section>
+          <div class="columns">
+            <section class="panel"><div class="section-heading"><div><p class="eyebrow">Account details</p><h2 id="account-name">—</h2></div></div><dl class="details"><div><dt>Email</dt><dd id="account-email">—</dd></div><div><dt>Currency</dt><dd id="account-currency">NGN</dd></div><div><dt>Member since</dt><dd id="account-created">—</dd></div></dl></section>
+            <section class="panel"><div class="section-heading"><div><p class="eyebrow">Payment history</p><h2>Purchases</h2></div></div><div id="purchases" class="purchases"></div></section>
+          </div>
+          <p id="account-error" class="error" hidden></p>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

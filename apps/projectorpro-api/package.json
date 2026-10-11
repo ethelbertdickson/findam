@@ -1,0 +1,31 @@
+{
+  "name": "@grasta/projectorpro-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dedicated Projector Pro API boundary during the legacy service migration",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "node --watch --import tsx src/server.ts",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:validate": "prisma validate --schema prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcrypt": "^6.0.0",
+    "google-auth-library": "^11.0.2",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^24.0.0",
+    "prisma": "^6.19.3",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
+}

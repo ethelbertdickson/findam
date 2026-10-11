@@ -26,6 +26,10 @@ export default () => ({
     projectSlug: process.env.MEDIA_PROJECT_SLUG ?? 'findam',
     apiKey: process.env.MEDIA_API_KEY,
     folderPath: process.env.MEDIA_FOLDER_PATH,
+    storagePath: process.env.MEDIA_STORAGE_PATH,
+  },
+  integration: {
+    apiKey: process.env.INTEGRATION_API_KEY,
   },
   google: {
     clientIds: (process.env.GOOGLE_CLIENT_IDS ?? '')

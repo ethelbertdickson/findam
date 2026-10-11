@@ -83,6 +83,14 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  MEDIA_STORAGE_PATH?: string;
+
+  @IsOptional()
+  @IsString()
+  INTEGRATION_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
   GEOAPIFY_API_KEY?: string;
 
   @IsOptional()

@@ -1,0 +1,20 @@
+[Unit]
+Description=Grasta Domhan Projector Pro API gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/findam/apps/projectorpro-api
+EnvironmentFile=/var/www/findam/apps/projectorpro-api/.env
+ExecStart=/usr/bin/node /var/www/findam/apps/projectorpro-api/dist/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
